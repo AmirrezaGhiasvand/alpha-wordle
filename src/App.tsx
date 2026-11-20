@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BarChart3, CircleHelp, Settings2, Delete, Check, Share2, RotateCw, Sun, Moon, LoaderCircle } from 'lucide-react'
+import { BarChart3, CircleHelp, Settings2, Delete, Check, Share2, RotateCw, Sun, Moon, LoaderCircle, Users } from 'lucide-react'
 import { fa, ALPHABET, keyMarks, normalize, shareText, tehranDate, type Game, type Mark } from './game/engine'
 import { openDemo, submitDemo, resetDemo } from './game/demo'
-import { configured, guessGame, openGame, resetGame } from './lib/api'
+import { configured, guessGame, openGame, resetGame, friendRequest, type FriendRoom } from './lib/api'
 import { read, recordResult, write } from './lib/storage'
 import Modal from './components/Modal'
 import Statistics from './components/Statistics'
 import Admin from './features/admin/Admin'
-import { challengeToken, challengeUrl } from './lib/routes'
+import FriendLobby from './components/FriendLobby'
+import { challengeToken, challengeUrl, friendToken, friendUrl, newFriendToken } from './lib/routes'
 
 const keyboard = ['ض ص ث ق ف غ ع ه خ ح ج چ', 'ش س ی ب ل ا ت ن م ک گ', 'ظ ط ز ر ذ د پ و ژ آ'].map(row => row.split(' '))
 const meanings: Record<Mark, string> = { correct: 'حرف درست، جای درست', present: 'حرف درست، جای دیگر', absent: 'در واژه نیست' }
 type Preferences = { contrast: boolean; dark: boolean }
-type View = 'help' | 'stats' | 'settings' | 'reset' | null
+type View = 'help' | 'stats' | 'settings' | 'reset' | 'friend' | null
 
 function route() { return window.location.hash || '#/play' }
 export default function App() {
   const [path, setPath] = useState(route)
   const [game, setGame] = useState<Game | null>(null)
+  const [room, setRoom] = useState<FriendRoom | null>(null)
   const [letters, setLetters] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -34,8 +36,11 @@ export default function App() {
   const request = useRef<{ guess: string; id: string; turn: number } | null>(null)
   const inFlight = useRef(false)
   const loadId = useRef(0)
+  const mutationId = useRef(0)
   const serverOffset = useRef(0)
   const token = challengeToken(path)
+  const friend = friendToken(path)
+  const creationToken = useRef<string | null>(null)
   const admin = path.startsWith('#/admin')
 
   useEffect(() => {
@@ -56,28 +61,77 @@ export default function App() {
   }, [])
   const load = useCallback(async () => {
     const generation = ++loadId.current
-    setLoading(true); setError(''); setGame(null); setLetters(''); setRevealingRow(null); request.current = null
+    setLoading(true); setError(''); setGame(null); setRoom(null); setLetters(''); setRevealingRow(null); request.current = null
     try {
       if (token && !configured) throw new Error('برای باز کردن چالش، اتصال به سرور باید تنظیم شود.')
-      const next = configured ? await openGame(token) : openDemo()
+      const joined = friend !== undefined ? await friendRequest('join', friend) : null
+      const next = friend !== undefined ? joined!.game : configured ? await openGame(token) : openDemo()
       if (generation !== loadId.current) return
-      if (next.serverTime) {
+      setRoom(joined)
+      if (next?.serverTime) {
         serverOffset.current = Date.parse(next.serverTime) - Date.now()
         setToday(tehranDate(new Date(next.serverTime)))
       }
       setGame(next)
     } catch (e) { if (generation === loadId.current) setError(e instanceof Error ? e.message : 'بازی بارگذاری نشد.') }
     finally { if (generation === loadId.current) setLoading(false) }
-  }, [token])
+  }, [token, friend])
   useEffect(() => { if (!admin) void load(); return () => { loadId.current++ } }, [admin, load])
   // Switch routes safely: do not reuse a recording game's outcome in another view.
   useEffect(() => { setView(null) }, [path])
+  // Poll only while visible, with no overlapping submissions or stale route responses.
   useEffect(() => {
-    if (!game || game.status === 'playing' || admin) return
+    if (friend === undefined || !room || room.result !== 'pending') return
+    let stopped = false
+    let timer: number
+    const generation = loadId.current
+    const refresh = async () => {
+      if (!document.hidden && !inFlight.current) {
+        const version = mutationId.current
+        try {
+          const next = await friendRequest('view', friend)
+          if (!stopped && generation === loadId.current && version === mutationId.current) {
+            setRoom(next)
+            setGame(current => current || next.game)
+            setError('')
+          }
+        } catch (e) {
+          if (!stopped) setNotice(e instanceof Error ? e.message : 'ارتباط با دوستت برقرار نشد.')
+        }
+      }
+      if (!stopped) timer = window.setTimeout(refresh, 3000)
+    }
+    timer = window.setTimeout(refresh, 3000)
+    return () => { stopped = true; clearTimeout(timer) }
+  }, [friend, !!room, room?.result])
+
+  async function createRoom() {
+    if (busy || inFlight.current) return
+    setBusy(true); inFlight.current = true
+    creationToken.current ||= newFriendToken()
+    try {
+      await friendRequest('create', creationToken.current)
+      location.hash = `#/friend/${creationToken.current}`
+      creationToken.current = null; setView(null)
+    } catch (e) { setNotice(e instanceof Error ? e.message : 'اتاق ساخته نشد.') }
+    finally { setBusy(false); inFlight.current = false }
+  }
+  async function chooseWord(word: string) {
+    if (friend === undefined || inFlight.current) return
+    inFlight.current = true; setBusy(true); mutationId.current++
+    const generation = loadId.current
+    try {
+      const next = await friendRequest('choose', friend, { word })
+      if (generation === loadId.current) { setRoom(next); setGame(next.game) }
+    } catch (e) { setNotice(e instanceof Error ? e.message : 'واژه ثبت نشد.') }
+    finally { inFlight.current = false; setBusy(false) }
+  }
+  useEffect(() => {
+    if (!game || game.status === 'playing' || admin || friend !== undefined) return
     recordResult({ id: game.id, date: game.date, won: game.status === 'won', attempts: game.attempts.length, kind: game.kind })
     const timer = window.setTimeout(() => setView('stats'), 320)
     return () => clearTimeout(timer)
-  }, [game, admin])
+  }, [game, admin, friend])
   useEffect(() => {
     if (!notice) return
     const timer = window.setTimeout(() => setNotice(''), 3500)
@@ -97,19 +151,21 @@ export default function App() {
   const submit = useCallback(async () => {
     if (!game || inFlight.current || game.status !== 'playing') return
     if (letters.length !== 5) { setNotice('پنج حرف وارد کن.'); setShake(n => n + 1); return }
-    inFlight.current = true; setBusy(true)
+    inFlight.current = true; setBusy(true); mutationId.current++
     const generation = loadId.current
     const guess = normalize(letters)
     if (!request.current || request.current.guess !== guess || request.current.turn !== game.attempts.length) {
       request.current = { guess, id: crypto.randomUUID(), turn: game.attempts.length }
     }
     try {
-      const next = configured ? await guessGame(game, guess, request.current.id) : await submitDemo(game, guess)
+      const updatedRoom = friend !== undefined ? await friendRequest('guess', friend, { guess, requestId: request.current.id, turn: game.attempts.length }) : null
+      const next = friend !== undefined ? updatedRoom!.game! : configured ? await guessGame(game, guess, request.current.id) : await submitDemo(game, guess)
       if (generation !== loadId.current) return
+      if (updatedRoom) setRoom(updatedRoom)
       setRevealingRow(game.attempts.length); setGame(next); setLetters(''); request.current = null
     } catch (e) { if (generation === loadId.current) { setNotice(e instanceof Error ? e.message : 'دوباره تلاش کن.'); setShake(n => n + 1) } }
     finally { inFlight.current = false; setBusy(false) }
-  }, [game, letters])
+  }, [game, letters, friend])
   const input = useCallback((key: string) => {
     if (loading || busy || !game || game.status !== 'playing' || view || admin) return
     if (key === 'Enter') { void submit(); return }
@@ -136,12 +192,12 @@ export default function App() {
 
   async function share() {
     if (!game || game.status === 'playing') return
-    const text = shareText(game, token ? challengeUrl(token) : `${location.origin}${location.pathname}#/play`)
+    const text = shareText(game, friend !== undefined ? friendUrl(friend) : token ? challengeUrl(token) : `${location.origin}${location.pathname}#/play`)
     try { await navigator.clipboard.writeText(text); setNotice('نتیجه کپی شد.') }
     catch { setNotice('کپی خودکار ممکن نشد؛ متن نتیجه را انتخاب و کپی کن.'); setView('stats') }
   }
   async function restart() {
-    if (!game || inFlight.current) return
+    if (!game || inFlight.current || friend !== undefined) return
     inFlight.current = true; setBusy(true)
     const generation = loadId.current
     try {
@@ -161,24 +217,25 @@ export default function App() {
       <div className="header-inner">
         <a href="#/play" className="identity" aria-label="مدرسهٔ آلفا، صفحهٔ بازی"><img src={`${base}${prefs.dark ? 'alpha-mark-dark.svg' : 'alpha-mark.svg'}`} width="111" height="40" alt="مدرسهٔ آلفا" /></a>
         <nav className="header-actions" aria-label="ابزارهای بازی">
-          {!admin && <button className="icon-button reset-button" onClick={() => setView('reset')} disabled={loading || busy || !game} aria-label="شروع دوباره" title="شروع دوباره"><RotateCw size={20} /></button>}
+          {!admin && <button className="icon-button" onClick={() => setView('friend')} aria-label="بازی با دوست" title="بازی با دوست"><Users size={21} /></button>}
+          {!admin && friend === undefined && <button className="icon-button reset-button" onClick={() => setView('reset')} disabled={loading || busy || !game || friend !== undefined} aria-label="شروع دوباره" title="شروع دوباره"><RotateCw size={20} /></button>}
           <button className="icon-button theme-toggle" onClick={() => setPrefs(p => ({ ...p, dark: !p.dark }))} aria-label="تغییر پوسته" aria-pressed={prefs.dark} title={prefs.dark ? 'پوستهٔ روشن' : 'پوستهٔ تیره'}>{prefs.dark ? <Sun size={21} /> : <Moon size={21} />}</button>
           <button className="icon-button" onClick={() => setView('help')} aria-label="راهنمای بازی" title="راهنما"><CircleHelp size={23} /></button>
-          <button className="icon-button" onClick={() => setView('stats')} aria-label="آمار بازی" title="آمار"><BarChart3 size={23} /></button>
+          {friend === undefined && <button className="icon-button" onClick={() => setView('stats')} aria-label="آمار بازی" title="آمار"><BarChart3 size={23} /></button>}
           <button className="icon-button" onClick={() => setView('settings')} aria-label="تنظیمات بازی" title="تنظیمات"><Settings2 size={23} /></button>
         </nav>
       </div>
     </header>
 
-    {admin ? <Admin /> : <main className="game-main">
+    {admin ? <Admin /> : <main className={`game-main ${room && !room.ready ? 'friend-waiting' : ''}`}>
       <section className="puzzle-heading" aria-label="اطلاعات بازی">
-        <div className="puzzle-meta"><span className="eyebrow">{token ? 'چالش دوستانه' : 'واژهٔ امروز'}</span><span className="puzzle-date">{dateLabel}</span></div>
-        <h1>پنج حرف، شش فرصت.</h1>
+        <div className="puzzle-meta"><span className="eyebrow">{friend !== undefined ? 'بازی با دوست' : token ? 'چالش دوستانه' : 'واژهٔ امروز'}</span><span className="puzzle-date">{friend !== undefined ? `تو: ${fa(game?.attempts.length || 0)} · دوستت: ${fa(room?.opponent.attempts || 0)}` : dateLabel}</span></div>
+        <h1>{room?.ready ? room.result === 'me' ? 'تو برنده شدی!' : room.result === 'other' ? 'دوستت برنده شد!' : room.result === 'draw' ? 'این بازی مساوی شد.' : game?.status !== 'playing' ? 'منتظر نتیجهٔ دوستت…' : 'کمتر حدس بزن، برنده شو.' : 'پنج حرف، شش فرصت.'}</h1>
       </section>
 
       {oldPuzzle && <div className="rollover-note">این بازی مربوط به روز قبل است.<button className="text-button" onClick={() => void load()}>بازی امروز</button></div>}
 
-      {error ? <div className="empty-state" role="alert"><h2>بازی آماده نشد</h2><p>{error}</p><button className="primary" onClick={() => void load()}><RotateCw size={17} />تلاش دوباره</button></div> : <>
+      {friend !== undefined && room && !room.ready && !error ? <FriendLobby room={room} token={friend} busy={busy} choose={chooseWord} /> : error ? <div className="empty-state" role="alert"><h2>بازی آماده نشد</h2><p>{error}</p><button className="primary" onClick={() => void load()}><RotateCw size={17} />تلاش دوباره</button></div> : <>
         <section className="game-stage" aria-label="بازی واژه">
         <div className="board-frame">
         <div key={`${game?.id}-${game?.round || 1}`} className={`board ${loading ? 'is-loading' : ''}`} role="group" aria-label="جدول بازی، شش ردیف و پنج ستون" aria-busy={loading || busy}>
@@ -197,8 +254,9 @@ export default function App() {
         </div>
         </div>
         <div className="board-status">
+          {room?.result && room.result !== 'pending' && <button className="text-button" onClick={() => setView('friend')}>مسابقهٔ تازه</button>}
           <div className="board-caption" aria-live="polite">{loading ? 'در حال آماده‌سازی بازی…' : busy ? 'در حال بررسی…' : game?.status === 'won' ? 'آفرین! واژه را پیدا کردی.' : game?.status === 'lost' ? `واژهٔ امروز: ${game.answer}` : `${fa(game?.attempts.length || 0)} از ۶ تلاش`}</div>
-          {game && game.status !== 'playing' ? <div className="finished-actions"><button className="text-button" onClick={() => void restart()} disabled={busy}>بازی دوباره</button><button className="icon-button" onClick={() => setView('stats')} aria-label="دیدن نتیجه"><BarChart3 size={16} /></button><button className="icon-button" onClick={() => void share()} aria-label="اشتراک‌گذاری نتیجه"><Share2 size={16} /></button></div> : null}
+          {game && game.status !== 'playing' && friend === undefined ? <div className="finished-actions"><button className="text-button" onClick={() => void restart()} disabled={busy}>بازی دوباره</button><button className="icon-button" onClick={() => setView('stats')} aria-label="دیدن نتیجه"><BarChart3 size={16} /></button><button className="icon-button" onClick={() => void share()} aria-label="اشتراک‌گذاری نتیجه"><Share2 size={16} /></button></div> : null}
         </div>
         </section>
         <section className="game-controls" aria-label="کنترل‌های بازی">
@@ -217,6 +275,7 @@ export default function App() {
     <footer className="site-footer"><a className="school-signature" href="https://alphaschool.ir/" target="_blank" rel="noreferrer">مدرسهٔ <b>آلفا</b></a><span className="footer-caption">هر روز، یک واژهٔ تازه</span>{!admin && <a className="admin-link" href="#/admin">مدیریت</a>}{admin && <a className="admin-link" href="#/play">بازگشت به بازی</a>}</footer>
     <div className={`toast ${notice ? 'visible' : ''}`} role="status" aria-live="polite">{notice}</div>
 
+    {view === 'friend' && <Modal title="بازی با دوست" close={() => setView(null)}><p className="dialog-intro">یک اتاق بساز و پیوندش را برای دوستت بفرست. هر کدام واژه‌ای برای دیگری انتخاب می‌کنید و تا شش حدس فرصت دارید. حل واژه با حدس کمتر برنده است؛ تعداد برابر یا حل‌نشدن هر دو، مساوی است.</p><button className="primary full" disabled={busy} onClick={() => void createRoom()}><Users size={18} />{busy ? 'در حال ساخت…' : 'ساخت اتاق و پیوند دعوت'}</button>{friend !== undefined && <p className="muted small">برای مسابقهٔ دوباره، اتاق تازه بساز. نتیجهٔ اتاق فعلی حفظ می‌شود.</p>}</Modal>}
     {view === 'help' && <Modal title="چطور بازی کنیم؟" close={() => setView(null)}>
       <p className="dialog-intro">یک واژهٔ پنج‌حرفی را در شش تلاش پیدا کن. بعد از هر حدس، رنگ هر خانه راهنمای توست.</p>
       <div className="example-row" aria-label="نمونهٔ رنگ‌ها">{[...'پرواز'].map((l, i) => <span className={`tile ${i === 0 ? 'correct' : i === 2 ? 'present' : i === 4 ? 'absent' : ''}`} key={i}>{l}</span>)}</div>

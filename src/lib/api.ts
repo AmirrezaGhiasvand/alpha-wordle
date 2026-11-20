@@ -20,6 +20,9 @@ const errors: Record<string, string> = {
   rate_limit: 'کمی صبر کنید و دوباره تلاش کنید.', invalid_date: 'تاریخ باید امروز یا بعد از امروز باشد.',
   invalid_action: 'این درخواست معتبر نیست.', not_found: 'بازی پیدا نشد.',
   stale_round: 'این دور بازی تغییر کرده است. بازی را دوباره بارگذاری کنید.',
+  room_full: 'این اتاق دو بازیکن دارد. برای بازی، اتاق تازه بساز.',
+  not_ready: 'هر دو بازیکن باید واژهٔ خود را انتخاب کنند.',
+  expired: 'مهلت این اتاق تمام شده است. اتاق تازه بساز.',
 }
 export async function rpc<T>(action: string, payload: Record<string, unknown> = {}, admin = false): Promise<T> {
   const client = admin ? adminSupabase : supabase
@@ -53,3 +56,16 @@ export function resetGame(game: Game): Promise<Game> {
 }
 export type Puzzle = { id: string; answer: string; kind: string; date: string | null; status: string; revision: number; created_at: string }
 export type AdminData = { puzzles: Puzzle[]; words: string[] }
+
+export type FriendRoom = {
+  id: string; seat: number; chosen: string | null; opponentJoined: boolean; opponentReady: boolean;
+  ready: boolean; expiresAt: string; result: 'pending' | 'me' | 'other' | 'draw';
+  opponent: { status: 'playing' | 'won' | 'lost' | null; attempts: number }; game: Game | null
+}
+export async function friendRequest(action: 'create' | 'join' | 'view' | 'choose' | 'guess', token: string, payload: Record<string, unknown> = {}): Promise<FriendRoom> {
+  await ensureGuest()
+  if (!supabase) throw new Error('برای بازی دونفره، اتصال به سرور باید تنظیم شود.')
+  const { data, error } = await supabase.rpc('friend_api', { action, payload: { ...payload, token } })
+  if (error) throw new Error(errors[error.message] || 'ارتباط با سرور برقرار نشد. دوباره تلاش کنید.')
+  return data as FriendRoom
+}

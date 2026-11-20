@@ -45,6 +45,10 @@ Statuses: **confirmed** = requested by owner; **proposed** = planning recommenda
 
 | D34 | Implemented | Manual admin words may use the full accepted dictionary; curated eligibility applies only to random suggestions and automatic daily answers |
 
+| D35 | Implemented | Two-player invitation rooms: each locks the other's five-letter word; six guesses; fewer guesses wins, equal scores/two failures draw; solved beats unsolved |
+| D36 | Implemented | Friend rooms use the existing playing surface, private server scoring, two seats, seven-day expiry, and no competitive reset; rematch creates a new room |
+| D37 | Implemented | Three-second visible-page polling for friend readiness/progress/results; guess requests remain independent and stale poll replies cannot replace newer state |
+
 ## Historical architecture alternative
 
 Supabase is now approved. If the owner later requires zero services beyond GitHub, use repository/Actions administration and publish static puzzle data. This removes secure in-app administration and makes client-delivered answers inspectable, including scheduled data if shipped. Never claim that hashing a five-letter answer or hiding it in JavaScript protects it from inspection or enumeration. Revisit D06 and the definition of done explicitly if selecting this alternative.

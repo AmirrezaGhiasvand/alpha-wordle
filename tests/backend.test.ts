@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { readFile, readdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { score } from '../src/game/engine'
+import type { FriendRoom } from '../src/lib/api'
 
 const ADMIN = '00000000-0000-0000-0000-000000000001'
 const A = '00000000-0000-0000-0000-000000000002'
@@ -18,6 +19,18 @@ async function asUser(id: string, anonymous = id !== ADMIN) {
 async function call<T = State>(action: string, payload = {}): Promise<T> {
   const r = await db.query<{ result: T }>('select public.wordle_api($1,$2::jsonb) result', [action, JSON.stringify(payload)])
   return r.rows[0].result
+}
+const friendToken = '0123456789abcdef'.repeat(4)
+async function friend(action: string, payload = {}): Promise<FriendRoom> {
+  const r = await db.query<{ result: FriendRoom }>('select public.friend_api($1,$2::jsonb) result', [action, JSON.stringify({ token: friendToken, ...payload })])
+  return r.rows[0].result
+}
+async function friendGuess(word: string, turn: number, requestId = randomUUID()) {
+  return friend('guess', { guess: word, turn, requestId })
+}
+async function readyFriends() {
+  await asUser(A); await friend('create'); await friend('choose', { word: 'باران' })
+  await asUser(B); await friend('join'); await friend('choose', { word: 'پرواز' })
 }
 async function schedule(answer = 'باران') { await asUser(ADMIN); return call<{ id: string }>('admin_save', { answer, kind: 'daily', date: today, publish: true }) }
 async function guess(game: State, word: string, turn = game.attempts.length, id = randomUUID()) {
@@ -39,10 +52,74 @@ describe('database authorization and game transactions', () => {
     today = r.rows[0].date
   }, 30_000)
   beforeEach(async () => {
-    await db.exec('reset role; truncate wordle_private.games, wordle_private.puzzles, wordle_private.audit, wordle_private.admins;')
+    await db.exec('reset role; truncate wordle_private.friend_players, wordle_private.friend_rooms, wordle_private.games, wordle_private.puzzles, wordle_private.audit, wordle_private.admins;')
     await db.query('insert into wordle_private.admins values ($1)', [ADMIN])
   })
   afterAll(async () => { await db?.close() })
+
+  it('keeps friend rooms private, limits them to two seats, and makes create/join retries safe', async () => {
+    await asUser(A); const room = await friend('create')
+    expect((await friend('create')).id).toBe(room.id)
+    await expect(db.query('select * from wordle_private.friend_players')).rejects.toThrow(/permission denied/)
+    await asUser(B); await expect(friend('view')).rejects.toThrow('not_found')
+    expect((await friend('join')).seat).toBe(2)
+    expect((await friend('join')).seat).toBe(2)
+    await asUser(ADMIN); await expect(friend('join')).rejects.toThrow('room_full')
+    await expect(friend('choose', { word: 'باران' })).rejects.toThrow('not_found')
+    await expect(friend('view', { token: 'bad' })).rejects.toThrow('invalid_action')
+    await db.exec('reset role; set role anon')
+    await expect(friend('view')).rejects.toThrow(/permission denied/)
+  })
+  it('locks valid words and starts only when both are ready without disclosing the opponent answer', async () => {
+    await asUser(A); await friend('create')
+    await expect(friend('choose', { word: 'abcde' })).rejects.toThrow('invalid_length')
+    await expect(friend('choose', { word: 'ببببب' })).rejects.toThrow('invalid_word')
+    expect((await friend('choose', { word: 'باران' })).game).toBeNull()
+    await expect(friendGuess('باران',0)).rejects.toThrow('not_ready')
+    await expect(friend('choose', { word: 'پرواز' })).rejects.toThrow('locked')
+    await asUser(B); const joined = await friend('join')
+    expect(JSON.stringify(joined)).not.toContain('باران')
+    const ready = await friend('choose', { word: 'پرواز' })
+    expect(ready.ready).toBe(true); expect(ready.game?.answer).toBeNull()
+    expect(ready.chosen).toBe('پرواز'); expect(JSON.stringify(ready)).not.toContain('باران')
+    await asUser(A); const mine = await friend('view')
+    expect(mine.chosen).toBe('باران'); expect(JSON.stringify(mine)).not.toContain('پرواز')
+    expect((await friend('choose', { word: 'باران' })).ready).toBe(true)
+  })
+  it('scores friend guesses on the server, retries once, and awards fewer guesses only after both finish', async () => {
+    await readyFriends(); await asUser(A)
+    const id = randomUUID()
+    const one = await friendGuess('آرامش',0,id)
+    expect((await friendGuess('آرامش',0,id)).game?.attempts).toEqual(one.game?.attempts)
+    await expect(friendGuess('آرامش',0)).rejects.toThrow('stale_turn')
+    await expect(friendGuess('ببببب',1)).rejects.toThrow('invalid_word')
+    const done = await friendGuess('پرواز',1)
+    expect(done.game?.status).toBe('won'); expect(done.game?.answer).toBe('پرواز'); expect(done.result).toBe('pending')
+    await expect(friendGuess('پرواز',2)).rejects.toThrow('finished')
+    await expect(friend('reset')).rejects.toThrow('invalid_action')
+    await expect(call('reset',{puzzleId:done.id,round:1})).rejects.toThrow('not_found')
+    await asUser(B); expect((await friend('view')).game?.attempts).toHaveLength(0)
+    expect((await friendGuess('باران',0)).result).toBe('me')
+    await asUser(A); expect((await friend('view')).result).toBe('other')
+  })
+  it('draws equal successful scores and two failures, and a solved word beats a failure', async () => {
+    await readyFriends(); await asUser(A); await friendGuess('پرواز',0)
+    await asUser(B); expect((await friendGuess('باران',0)).result).toBe('draw')
+    await db.exec('reset role; truncate wordle_private.friend_players, wordle_private.friend_rooms')
+    await readyFriends(); await asUser(A)
+    for(let i=0;i<6;i++) await friendGuess('آرامش',i)
+    await asUser(B)
+    for(let i=0;i<5;i++) await friendGuess('آرامش',i)
+    expect((await friendGuess('آرامش',5)).result).toBe('draw')
+    await db.exec("reset role; update wordle_private.friend_players set attempts='[]',request_ids='[]',status='playing' where user_id='"+B+"'")
+    await asUser(B); expect((await friendGuess('باران',0)).result).toBe('me')
+  })
+  it('expires invitation rooms without affecting daily games', async () => {
+    await asUser(A); await friend('create')
+    await db.exec("reset role; update wordle_private.friend_rooms set expires_at=now()-interval '1 second'")
+    await asUser(A); await expect(friend('view')).rejects.toThrow('expired')
+    expect((await call('open')).status).toBe('playing')
+  })
 
   it('denies raw answer tables and every administrative action to ordinary players', async () => {
     await asUser(A)
