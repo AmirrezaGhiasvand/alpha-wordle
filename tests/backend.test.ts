@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PGlite } from '@electric-sql/pglite'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { score } from '../src/game/engine'
 
@@ -9,7 +9,7 @@ const A = '00000000-0000-0000-0000-000000000002'
 const B = '00000000-0000-0000-0000-000000000003'
 let db: PGlite
 let today: string
-type State = { id: string; answer: string | null; attempts: unknown[]; status: string }
+type State = { id: string; answer: string | null; attempts: unknown[]; status: string; round?: number }
 async function asUser(id: string, anonymous = id !== ADMIN) {
   await db.exec('reset role')
   await db.query("select set_config('request.jwt.claims',$1,false)", [JSON.stringify({ sub: id, is_anonymous: anonymous })])
@@ -21,7 +21,7 @@ async function call<T = State>(action: string, payload = {}): Promise<T> {
 }
 async function schedule(answer = 'باران') { await asUser(ADMIN); return call<{ id: string }>('admin_save', { answer, kind: 'daily', date: today, publish: true }) }
 async function guess(game: State, word: string, turn = game.attempts.length, id = randomUUID()) {
-  return call('guess', { puzzleId: game.id, guess: word, turn, requestId: id })
+  return call('guess', { puzzleId: game.id, guess: word, turn, requestId: id, round: game.round || 1 })
 }
 
 describe('database authorization and game transactions', () => {
@@ -32,7 +32,8 @@ describe('database authorization and game transactions', () => {
       create function auth.uid() returns uuid language sql as $$ select (current_setting('request.jwt.claims',true)::jsonb->>'sub')::uuid $$;
       create function auth.jwt() returns jsonb language sql as $$ select current_setting('request.jwt.claims',true)::jsonb $$;
       insert into auth.users values ('${ADMIN}'),('${A}'),('${B}');`)
-    await db.exec(await readFile(new URL('../supabase/migrations/202611200001_wordle.sql', import.meta.url), 'utf8'))
+    const directory = new URL('../supabase/migrations/', import.meta.url)
+    for (const file of (await readdir(directory)).filter(name => name.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(file, directory), 'utf8'))
     await db.exec(await readFile(new URL('../supabase/seed-development.sql', import.meta.url), 'utf8'))
     const r = await db.query<{ date: string }>("select ((now() at time zone 'Asia/Tehran')::date)::text date")
     today = r.rows[0].date
@@ -85,6 +86,20 @@ describe('database authorization and game transactions', () => {
     for (let i = 0; i < 6; i++) game = await guess(game, 'آرامش')
     expect(game.status).toBe('lost'); expect(game.answer).toBe('باران')
     await expect(guess(game, 'باران')).rejects.toThrow('finished')
+  })
+  it('restarts only the current player round and rejects delayed guesses from before reset', async () => {
+    await schedule(); await asUser(A)
+    const first = await call('open')
+    await guess(first, 'آرامش')
+    const fresh = await call('reset', { puzzleId: first.id, round: first.round })
+    expect(fresh.id).toBe(first.id); expect(fresh.attempts).toEqual([])
+    expect(fresh.status).toBe('playing'); expect(fresh.answer).toBeNull()
+    expect(fresh.round).toBe(2)
+    expect((await call('reset', { puzzleId: first.id, round: first.round })).round).toBe(2)
+    await expect(guess(first, 'باران')).rejects.toThrow('stale_round')
+    expect((await guess(fresh, 'باران')).status).toBe('won')
+    await asUser(B); await expect(call('reset', { puzzleId: first.id, round: 1 })).rejects.toThrow('not_found')
+    expect((await call('open')).attempts).toEqual([])
   })
   it('creates one fallback daily puzzle, locks its answer, and rejects date conflicts', async () => {
     await asUser(A); const first = await call('open')

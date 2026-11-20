@@ -38,7 +38,7 @@ Accept six valid guesses; a correct guess wins immediately, otherwise the sixth 
 | puzzles | ID, daily/recording kind, nullable daily date, secret answer reference, dictionary/rules version, state, revision, publish time; unique daily date for active daily records |
 | recording_access | Puzzle ID, token hash, revoked time; raw token shown only when created |
 | admin_memberships | Auth user ID, role; server-managed only |
-| games | ID, user ID, puzzle ID, attempt count, outcome, timestamps; unique user/puzzle |
+| games | ID, user ID, puzzle ID, attempt count, round version, outcome, timestamps; unique user/puzzle |
 | attempts | Game ID, attempt index, normalized guess, feedback, idempotency key; unique game/index and game/key |
 | admin_audit | Actor, action, affected puzzle, timestamp; redact answers and tokens from general logs |
 
@@ -52,6 +52,7 @@ Draft and scheduled answer data is private. Public responses project only safe p
 | Resolve recording token | Resolves authorized unlisted puzzle; stores no raw token in logs |
 | Start/resume game | Authenticated guest identity; creates once or returns own existing game |
 | Submit guess | Verifies identity, ownership, puzzle status, normalized word, turn, and idempotency key; atomically stores attempt and result |
+| Reset own round | Authenticated owner only; clears own attempts, increments round version, preserves shared puzzle; stale reset retries return current round |
 | Get own game | Returns guesses/feedback/outcome; includes answer only for a finished game |
 | Admin list/preview | Requires admin; returns draft/scheduled puzzle details |
 | Admin randomize | Requires admin; chooses from eligible curated words; never publishes implicitly |
@@ -65,3 +66,7 @@ When a response is lost, retrying the same submission returns the stored result.
 Browser cache keys include deployment namespace, puzzle ID, and schema version. Store only the player's own game and preferences. Reconcile against the backend after refresh; cached data cannot overwrite server attempts. Recover gracefully from corrupt storage, storage denial, or an expired guest session. Explain that cleared sessions may lose access to saved games.
 
 For recording: admin prepares and previews a recording puzzle, copies its link, then sends it to participants outside the app. Participants independently open it on their own devices. Confirm the puzzle identifier before recording. The owner captures each screen using their external recording setup. A fresh browser profile can be used for rehearsal; production statistics must not be silently reset. The answer-aware admin should not be assumed to participate blind.
+
+## Replay clarification
+
+The owner subsequently requested reset and Play Again. Six attempts are enforced per round. A reset restarts the same puzzle for that player only; guesses carry the round version so requests delayed across a reset are rejected. Local statistics preserve the first completed result for each puzzle. This is a casual replayable game, not a ranked competition.

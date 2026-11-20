@@ -27,7 +27,8 @@
 - Copy/share an answer-free result grid with puzzle identifier and link.
 - Separate recording puzzles with stable links, so recording is independent of the daily rollover.
 - One default recording-ready playing view with a large readable board and restrained animation; no alternate layout or mode switch.
-- Both dark navy and blue-tinted light themes; less white and purposeful Alpha color.
+- White light theme by default and optional dark theme; original Alpha logo/wordmark, rounded tiles/navbar, restrained shadows and animations.
+- Reset with confirmation and post-game replay of the same shared puzzle; preserve a previously recorded result.
 - Public game fits one screen without scrolling on mobile and desktop; secondary dialogs/admin content may scroll internally.
 - Responsive layout with high-contrast status cues and reduced-motion support.
 - Admin dashboard for drafts, random selection, preview, scheduling, recording links, publication, and retirement.

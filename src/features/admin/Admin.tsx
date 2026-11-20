@@ -58,7 +58,7 @@ export default function Admin() {
   }
   return <main className="admin-main">
     <a href="#/play" className="text-button">بازگشت به بازی</a>
-    <div className="admin-title"><div><span className="eyebrow">مدیریت واژه آلفا</span><h1>واژه‌ها و چالش‌ها</h1></div>{authenticated && <button className="secondary" onClick={() => void task(async () => { await adminSupabase?.auth.signOut(); setData(null) })}><LogOut size={17} />خروج</button>}</div>
+    <div className="admin-title"><div><span className="eyebrow">مدیریت بازی واژه</span><h1>واژه‌ها و چالش‌ها</h1></div>{authenticated && <button className="secondary" onClick={() => void task(async () => { await adminSupabase?.auth.signOut(); setData(null) })}><LogOut size={17} />خروج</button>}</div>
     {!configured ? <section className="setup-panel"><h2>اتصال به Supabase هنوز تنظیم نشده است</h2><p>بازی آزمایشی آماده است. برای فعال شدن ورود مدیر، انتخاب واژهٔ روز و چالش‌های مشترک، پروژهٔ Supabase را طبق راهنمای مخزن متصل کنید.</p><p className="muted">در نسخهٔ محلی، تغییر واژه یا ساخت پیوند واقعی انجام نمی‌شود.</p><a className="primary" href="#/play">دیدن بازی آزمایشی</a></section> : !authenticated ? <form className="login-panel" onSubmit={login}>
       <h2>ورود مدیر</h2><p className="muted">فقط حساب‌های تعیین‌شده توسط مالک دسترسی دارند.</p>
       <label>ایمیل<input required type="email" dir="ltr" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} disabled={sent || busy} placeholder="name@example.com" /></label>

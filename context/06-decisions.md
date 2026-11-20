@@ -30,6 +30,10 @@ Statuses: **confirmed** = requested by owner; **proposed** = planning recommenda
 | D23 | Confirmed | Richer navy and blue/yellow palette; both light/dark themes; public game fits viewport without scrolling |
 | D24 | Implemented | Public GitHub repository: AmirrezaGhiasvand/alpha-wordle |
 
+| D25 | Confirmed | Header uses original Alpha logo/wordmark only; white light default, optional dark mode |
+| D26 | Confirmed | Rounded tiles/navbar, subtle shadows and interaction animations, minimal styling |
+| D27 | Implemented | Confirmed reset and post-game replay restart the same word; first saved result preserved; server round versions reject stale guesses |
+
 ## Historical architecture alternative
 
 Supabase is now approved. If the owner later requires zero services beyond GitHub, use repository/Actions administration and publish static puzzle data. This removes secure in-app administration and makes client-delivered answers inspectable, including scheduled data if shipped. Never claim that hashing a five-letter answer or hiding it in JavaScript protects it from inspection or enumeration. Revisit D06 and the definition of done explicitly if selecting this alternative.

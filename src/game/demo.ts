@@ -11,7 +11,7 @@ export function openDemo(): Game {
   const saved = read<Game | null>(id, null)
   if (saved && saved.id === id && Array.isArray(saved.attempts) && saved.attempts.length <= 6) {
     // Recompute from valid guesses instead of trusting cached feedback/outcomes.
-    let game: Game = { id, label: date, kind: 'demo', date, attempts: [], status: 'playing' }
+    let game: Game = { id, label: date, kind: 'demo', date, round: Number.isInteger(saved.round) && saved.round! > 0 ? saved.round : 1, attempts: [], status: 'playing' }
     for (const item of saved.attempts) {
       if (game.status !== 'playing' || !item || typeof item.guess !== 'string' || !isWord(item.guess)) break
       game = advance(game, item.guess)
@@ -24,6 +24,11 @@ function advance(game: Game, guess: string): Game {
   const attempts = [...game.attempts, { guess, marks: score(answer, guess) }]
   const status = guess === answer ? 'won' : attempts.length === 6 ? 'lost' : 'playing'
   return { ...game, attempts, status, ...(status !== 'playing' ? { answer } : {}) }
+}
+export function resetDemo(game: Game): Game {
+  const next: Game = { ...game, round: (game.round || 1) + 1, attempts: [], status: 'playing', answer: undefined }
+  write(game.id, next)
+  return next
 }
 export async function submitDemo(game: Game, raw: string): Promise<Game> {
   if (game.status !== 'playing') throw new Error('این بازی تمام شده است.')

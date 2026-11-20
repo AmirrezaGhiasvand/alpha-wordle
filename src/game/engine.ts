@@ -1,6 +1,7 @@
 export type Mark = 'correct' | 'present' | 'absent'
 export type Attempt = { guess: string; marks: Mark[] }
 export type Game = {
+  round?: number;
   id: string; label: string; kind: 'daily' | 'recording' | 'demo';
   attempts: Attempt[]; status: 'playing' | 'won' | 'lost'; answer?: string;
   date?: string; serverTime?: string; nextRollover?: string
@@ -45,5 +46,5 @@ export const fa = (value: number | string) => String(value).replace(/\d/g, digit
 export function shareText(game: Game, url: string): string {
   const boxes = { correct: '🟩', present: '🟨', absent: '⬜' }
   // Keep logical Persian order while explicitly marking the grid RTL in text.
-  return `واژه آلفا · ${game.label}\n${game.status === 'won' ? fa(game.attempts.length) : '×'}/۶\n\n${game.attempts.map(a => '\u200f' + a.marks.map(m => boxes[m]).join('')).join('\n')}\n\n${url}`
+  return `بازی واژه · ${game.label}\n${game.status === 'won' ? fa(game.attempts.length) : '×'}/۶\n\n${game.attempts.map(a => '\u200f' + a.marks.map(m => boxes[m]).join('')).join('\n')}\n\n${url}`
 }

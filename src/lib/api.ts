@@ -19,6 +19,7 @@ const errors: Record<string, string> = {
   locked: 'واژهٔ منتشرشده قابل تغییر نیست.', no_words: 'واژهٔ مناسبی در مجموعهٔ تأییدشده باقی نمانده است.',
   rate_limit: 'کمی صبر کنید و دوباره تلاش کنید.', invalid_date: 'تاریخ باید امروز یا بعد از امروز باشد.',
   invalid_action: 'این درخواست معتبر نیست.', not_found: 'بازی پیدا نشد.',
+  stale_round: 'این دور بازی تغییر کرده است. بازی را دوباره بارگذاری کنید.',
 }
 export async function rpc<T>(action: string, payload: Record<string, unknown> = {}, admin = false): Promise<T> {
   const client = admin ? adminSupabase : supabase
@@ -45,7 +46,10 @@ export async function openGame(token?: string): Promise<Game> {
   return rpc<Game>('open', token ? { token } : {})
 }
 export function guessGame(game: Game, guess: string, requestId: string): Promise<Game> {
-  return rpc<Game>('guess', { puzzleId: game.id, guess, requestId, turn: game.attempts.length })
+  return rpc<Game>('guess', { puzzleId: game.id, guess, requestId, turn: game.attempts.length, round: game.round || 1 })
+}
+export function resetGame(game: Game): Promise<Game> {
+  return rpc<Game>('reset', { puzzleId: game.id, round: game.round || 1 })
 }
 export type Puzzle = { id: string; answer: string; kind: string; date: string | null; status: string; revision: number; created_at: string }
 export type AdminData = { puzzles: Puzzle[]; words: string[] }

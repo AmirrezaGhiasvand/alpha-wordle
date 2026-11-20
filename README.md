@@ -4,7 +4,7 @@ A Persian five-letter / six-attempt word game with Alpha School identity, self-h
 
 Repository: [AmirrezaGhiasvand/alpha-wordle](https://github.com/AmirrezaGhiasvand/alpha-wordle).
 
-The game uses one viewport-fitted layout for everyday play and recording. Dark navy is the default; the header theme button switches to a blue-tinted light theme and remembers the choice. There is no separate recording-mode layout or switch. The full board and keyboard fit on one screen; help/results dialogs and admin content scroll within their own surfaces when needed.
+The game uses one viewport-fitted layout for everyday play and recording. White is the default light theme; the header theme button switches to dark and remembers the choice. The header uses the original Alpha logo/wordmark, with no separate product title. Rounded tiles, gentle shadows, and short animations keep the interface minimal. There is no separate recording-mode layout or switch. The full board and keyboard fit on one screen; help/results dialogs and admin content scroll within their own surfaces when needed.
 
 ## Run locally
 
@@ -23,13 +23,13 @@ npm run build
 npm run preview
 ```
 
-For real browser layout checks, start the local preview on port 5173 and run `npm run test:layout`. On machines without system Chrome, run `npx playwright install chromium` first. Checks cover 11 viewport sizes in both themes, complete board/keyboard visibility, and absence of page scrolling. CI runs these checks on the production build.
+For real browser layout checks, start the local preview on port 5173 and run `npm run test:layout`. On machines without system Chrome, run `npx playwright install chromium` first. Checks cover 11 viewport sizes in both themes, complete board/keyboard visibility, absence of page scrolling, and a win/replay/reset/reload browser journey. CI runs these checks on the production build.
 
 Tests cover Persian normalization and scoring, frontend interactions, and the actual SQL migration using PGlite. PGlite is not a substitute for testing hosted Supabase Auth, service policies, and concurrent network requests before launch.
 
 ## Connect Supabase
 
-1. Create/select an owner-managed Supabase project. Apply [the migration](supabase/migrations/202611200001_wordle.sql) through the SQL editor or Supabase CLI. Do not expose `wordle_private` in API settings.
+1. Create/select an owner-managed Supabase project. Apply all migrations in `supabase/migrations/` in filename order through the SQL editor or Supabase CLI: [initial schema](supabase/migrations/202611200001_wordle.sql), then [replay support](supabase/migrations/202611200002_replay.sql). Do not expose `wordle_private` in API settings.
 2. Run `npm run dictionary:sql` and import `.local/accepted-guesses.sql` to populate accepted guesses without approving answers. For development only, run [seed-development.sql](supabase/seed-development.sql) to approve the starter answer fixtures. Production requires editorial review and a sufficiently large curated answer pool; no production answer list is seeded automatically. See [dictionary documentation](data/README.md).
 3. Enable anonymous sign-ins for players. Configure signup abuse protection and provider rate limits suitable for launch traffic. Test anonymous signup from the intended audience's region.
 4. Create/invite the admin account through the owner-managed Auth dashboard. Set the email sign-in template to deliver `{{ .Token }}` so the admin UI can accept an email OTP; it does not consume a magic-link callback. Configure a reliable email sender and verify OTP delivery. The frontend never creates new admin accounts.
@@ -54,6 +54,10 @@ Database tables use default-deny RLS and live outside the exposed schema. The au
 5. Verify the deployed URL on mobile, keyboard/paste input, font loading, admin OTP, daily rollover, recording links, retry behavior, and revoked links. Do not claim production readiness from local tests alone.
 
 Actions are pinned to verified upstream commit revisions; provenance is in [context/ci-action-versions.json](context/ci-action-versions.json).
+
+## Reset and replay
+
+The header reset control asks for confirmation before clearing the current round. After a game ends, Play Again restarts the same puzzle. Neither control changes the shared answer or erases a previously recorded local result. Hosted resets are authorized per player; round versions reject delayed submissions from before a reset.
 
 ## Admin operations
 

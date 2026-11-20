@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BarChart3, CircleHelp, Settings2, Delete, Check, Share2, RotateCw, Sun, Moon } from 'lucide-react'
 import { fa, ALPHABET, keyMarks, normalize, shareText, tehranDate, type Game, type Mark } from './game/engine'
-import { openDemo, submitDemo, DEMO_WORDS } from './game/demo'
-import { configured, guessGame, openGame } from './lib/api'
+import { openDemo, submitDemo, resetDemo, DEMO_WORDS } from './game/demo'
+import { configured, guessGame, openGame, resetGame } from './lib/api'
 import { read, recordResult, write } from './lib/storage'
 import Modal from './components/Modal'
 import Statistics from './components/Statistics'
@@ -11,7 +11,7 @@ import Admin from './features/admin/Admin'
 const keyboard = ['ض ص ث ق ف غ ع ه خ ح ج چ', 'ش س ی ب ل ا ت ن م ک گ', 'ظ ط ز ر ذ د پ و ژ آ'].map(row => row.split(' '))
 const meanings: Record<Mark, string> = { correct: 'حرف درست، جای درست', present: 'حرف درست، جای دیگر', absent: 'در واژه نیست' }
 type Preferences = { contrast: boolean; dark: boolean }
-type View = 'help' | 'stats' | 'settings' | null
+type View = 'help' | 'stats' | 'settings' | 'reset' | null
 
 function route() { return window.location.hash || '#/play' }
 export default function App() {
@@ -26,8 +26,8 @@ export default function App() {
   const [shake, setShake] = useState(0)
   const [today, setToday] = useState(tehranDate())
   const [prefs, setPrefs] = useState<Preferences>(() => {
-    const saved = read<Partial<Preferences>>('preferences', {})
-    return { contrast: saved.contrast === true, dark: typeof saved.dark === 'boolean' ? saved.dark : true }
+    const saved = read<Partial<Preferences>>('preferences-v2', {})
+    return { contrast: saved.contrast === true, dark: saved.dark === true }
   })
   const request = useRef<{ guess: string; id: string; turn: number } | null>(null)
   const inFlight = useRef(false)
@@ -44,7 +44,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = prefs.dark ? 'dark' : 'light'
     document.documentElement.dataset.contrast = prefs.contrast ? 'high' : 'normal'
-    write('preferences', prefs)
+    write('preferences-v2', prefs)
   }, [prefs])
   useEffect(() => {
     const refresh = () => setToday(tehranDate(new Date(Date.now() + serverOffset.current)))
@@ -128,6 +128,18 @@ export default function App() {
     try { await navigator.clipboard.writeText(text); setNotice('نتیجه کپی شد.') }
     catch { setNotice('کپی خودکار ممکن نشد؛ متن نتیجه را انتخاب و کپی کن.'); setView('stats') }
   }
+  async function restart() {
+    if (!game || inFlight.current) return
+    inFlight.current = true; setBusy(true)
+    const generation = loadId.current
+    try {
+      const next = configured ? await resetGame(game) : resetDemo(game)
+      if (generation !== loadId.current) return
+      setGame(next); setLetters(''); setShake(0); request.current = null; setView(null)
+      setNotice('بازی از اول شروع شد.')
+    } catch (e) { setNotice(e instanceof Error ? e.message : 'شروع دوباره انجام نشد.') }
+    finally { inFlight.current = false; setBusy(false) }
+  }
   const marks = keyMarks(game?.attempts || [])
   const dateLabel = new Intl.DateTimeFormat('fa-IR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Tehran' }).format(game?.date ? new Date(`${game.date}T12:00:00+03:30`) : new Date(Date.now() + serverOffset.current))
   const oldPuzzle = game?.date && game.date !== today && game.kind !== 'recording'
@@ -135,8 +147,9 @@ export default function App() {
   return <div className={`app ${admin ? 'admin-app' : 'game-app'}`}>
     <header className="site-header">
       <div className="header-inner">
-        <a href="#/play" className="identity" aria-label="واژه آلفا، صفحهٔ بازی"><img src={`${base}alpha-symbol.svg`} width="43" height="40" alt="" /><span>واژه <b>آلفا</b></span></a>
+        <a href="#/play" className="identity" aria-label="مدرسهٔ آلفا، صفحهٔ بازی"><img src={`${base}alpha-mark.svg`} width="111" height="40" alt="مدرسهٔ آلفا" /></a>
         <nav className="header-actions" aria-label="ابزارهای بازی">
+          {!admin && <button className="icon-button reset-button" onClick={() => setView('reset')} disabled={loading || busy || !game} aria-label="شروع دوباره" title="شروع دوباره"><RotateCw size={20} /></button>}
           <button className="icon-button theme-toggle" onClick={() => setPrefs(p => ({ ...p, dark: !p.dark }))} aria-label="تغییر پوسته" aria-pressed={prefs.dark} title={prefs.dark ? 'پوستهٔ روشن' : 'پوستهٔ تیره'}>{prefs.dark ? <Sun size={21} /> : <Moon size={21} />}</button>
           <button className="icon-button" onClick={() => setView('help')} aria-label="راهنمای بازی" title="راهنما"><CircleHelp size={23} /></button>
           <button className="icon-button" onClick={() => setView('stats')} aria-label="آمار بازی" title="آمار"><BarChart3 size={23} /></button>
@@ -156,7 +169,7 @@ export default function App() {
       {error ? <div className="empty-state" role="alert"><h2>بازی آماده نشد</h2><p>{error}</p><button className="primary" onClick={() => void load()}><RotateCw size={17} />تلاش دوباره</button></div> : <>
         <section className="game-stage" aria-label="بازی واژه">
         <div className="board-frame">
-        <div className={`board ${loading ? 'is-loading' : ''}`} role="group" aria-label="جدول بازی، شش ردیف و پنج ستون" aria-busy={loading || busy}>
+        <div key={`${game?.id}-${game?.round || 1}`} className={`board ${loading ? 'is-loading' : ''}`} role="group" aria-label="جدول بازی، شش ردیف و پنج ستون" aria-busy={loading || busy}>
           {Array.from({ length: 6 }, (_, row) => {
             const attempt = game?.attempts[row]
             const active = !!game && row === game.attempts.length && game.status === 'playing'
@@ -173,7 +186,7 @@ export default function App() {
         </div>
         <div className="board-status">
           <div className="board-caption" aria-live="polite">{loading ? 'در حال آماده‌سازی بازی…' : busy ? 'در حال بررسی…' : game?.status === 'won' ? 'آفرین! واژه را پیدا کردی.' : game?.status === 'lost' ? `واژهٔ امروز: ${game.answer}` : `${fa(game?.attempts.length || 0)} از ۶ تلاش`}</div>
-          {game && game.status !== 'playing' ? <div className="finished-actions"><button className="text-button" onClick={() => setView('stats')}>دیدن نتیجه</button><button className="icon-button" onClick={() => void share()} aria-label="اشتراک‌گذاری نتیجه"><Share2 size={16} /></button></div> : null}
+          {game && game.status !== 'playing' ? <div className="finished-actions"><button className="text-button" onClick={() => void restart()} disabled={busy}>بازی دوباره</button><button className="icon-button" onClick={() => setView('stats')} aria-label="دیدن نتیجه"><BarChart3 size={16} /></button><button className="icon-button" onClick={() => void share()} aria-label="اشتراک‌گذاری نتیجه"><Share2 size={16} /></button></div> : null}
         </div>
         </section>
         <section className="game-controls" aria-label="کنترل‌های بازی">
@@ -200,7 +213,8 @@ export default function App() {
       {!configured && <details className="demo-words"><summary>چند واژه برای امتحان نسخهٔ آزمایشی</summary><p>{DEMO_WORDS.slice(0, 18).join('، ')}</p><p className="small">این نمونه برای بررسی رابط است؛ واژهٔ آن روزانه عوض نمی‌شود.</p></details>}
       <button className="primary full" onClick={() => setView(null)}>شروع کنیم</button>
     </Modal>}
-    {view === 'stats' && <Modal title={game?.status !== 'playing' && game ? 'نتیجهٔ بازی' : 'آمار بازی‌ها'} close={() => setView(null)}><Statistics game={game} onShare={() => void share()} />{game && game.status !== 'playing' && <textarea className="share-fallback" aria-label="متن نتیجه برای کپی" readOnly value={shareText(game, `${location.origin}${location.pathname}${token ? `#/p/${token}` : '#/play'}`)} />}</Modal>}
+    {view === 'stats' && <Modal title={game?.status !== 'playing' && game ? 'نتیجهٔ بازی' : 'آمار بازی‌ها'} close={() => setView(null)}><Statistics game={game} onShare={() => void share()} />{game && game.status !== 'playing' && <><button className="secondary full replay-button" disabled={busy} onClick={() => void restart()}><RotateCw size={17} />بازی دوباره</button><textarea className="share-fallback" aria-label="متن نتیجه برای کپی" readOnly value={shareText(game, `${location.origin}${location.pathname}${token ? `#/p/${token}` : '#/play'}`)} /></>}</Modal>}
+    {view === 'reset' && <Modal title="از اول شروع کنیم؟" close={() => { if (!busy) setView(null) }}><p className="dialog-intro">حدس‌های این دور پاک می‌شوند و همین واژه را دوباره بازی می‌کنی. نتیجه‌ای که قبلاً در آمار ثبت شده، تغییر نمی‌کند.</p><div className="reset-actions"><button className="primary" onClick={() => void restart()} disabled={busy}><RotateCw size={17} />شروع دوباره</button><button className="secondary" onClick={() => setView(null)} disabled={busy}>ادامهٔ بازی</button></div></Modal>}
     {view === 'settings' && <Modal title="تنظیمات" close={() => setView(null)}>
       <div className="setting-row"><div><strong>کنتراست بیشتر</strong><p>رنگ‌های متمایزتر برای خانه‌ها</p></div><input type="checkbox" role="switch" aria-label="کنتراست بیشتر" checked={prefs.contrast} onChange={e => setPrefs(p => ({ ...p, contrast: e.target.checked }))} /></div>
       <div className="setting-row"><div><strong>پوستهٔ تیره</strong><p>پوستهٔ روشن یا تیره را انتخاب کن</p></div><button className="icon-button" aria-label="تغییر پوسته در تنظیمات" aria-pressed={prefs.dark} onClick={() => setPrefs(p => ({ ...p, dark: !p.dark }))}>{prefs.dark ? <Moon size={22} /> : <Sun size={22} />}</button></div>

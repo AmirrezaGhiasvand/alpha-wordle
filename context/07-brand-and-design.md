@@ -4,12 +4,13 @@ Updated: 2026-11-20. Scope: implemented local design and maintained brand refere
 
 ## Latest confirmed design
 
-- Use one recording-ready layout for every player; no recording-mode switch or alternate layout.
-- Navy dark theme by default, switchable blue-tinted light theme; persist the user choice.
-- Reduce white surfaces; use Alpha blue/yellow with green/yellow/gray game feedback.
-- Keep the complete board and keyboard visible without page scrolling on mobile and desktop. Landscape phones reflow the same components side by side. Secondary dialogs and admin surfaces may scroll internally.
-- Vazirmatn is implemented and self-hosted under the SIL OFL; license included.
-- 22 viewport/theme checks passed and desktop/mobile screenshots were inspected. Real-device Safari verification remains pending.
+- Original Alpha logo and wordmark only in the header; no separate product-name text. This preserves the website artwork's typography exactly.
+- White light theme by default, with an optional dark theme and saved user preference. Alpha blue/yellow remain restrained accents.
+- A compact rounded navbar, rounded board tiles/keyboard keys, fine borders, gentle shadows, and brief input/reveal/dialog transitions. No decorative gradients, continuous motion, or effects unrelated to interaction. Respect reduced motion.
+- One responsive layout for everyday play and external recording; no recording-mode switch. Full board and keyboard fit the viewport. Secondary dialogs/admin content can scroll internally.
+- Reset in the navbar, with confirmation during an active game. Play Again after completion restarts the same shared word and preserves previously recorded statistics.
+- Vazirmatn remains self-hosted for UI text under its SIL OFL license. The website's separate IRANYekanX/Lahze binaries are not redistributed without reuse rights.
+- 22 viewport/theme checks and a win/replay/reset/reload browser journey pass; desktop/mobile screenshots were inspected. Real-device Safari review remains pending.
 
 ## Original confirmed direction
 
@@ -86,6 +87,6 @@ These are acceptance requirements for the prototype and final design, not option
 
 ## Product copy and open choices
 
-Working name: **واژه آلفا**. This is a placeholder, not a confirmed company product name. Default labels describe today's puzzle, recording challenge, attempts, rules, and sharing in Persian. Use encouraging, concise copy suitable for Alpha School's audience; no copied marketing paragraphs are needed.
+Historical working name (removed from interface): **واژه آلفا**. This is a placeholder, not a confirmed company product name. Default labels describe today's puzzle, recording challenge, attempts, rules, and sharing in Persian. Use encouraging, concise copy suitable for Alpha School's audience; no copied marketing paragraphs are needed.
 
 Implemented: the themed local game with licensed Vazirmatn, responsive viewport fitting, and light/dark themes. Still pending: final game name, company word policy, optional higher-resolution wordmark, and hosted integration/real-device review.
