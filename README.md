@@ -72,3 +72,7 @@ The header reset control asks for confirmation before clearing the current round
 GitHub and Supabase are connected, database migrations are applied, and the live guest/game API passed smoke tests. Complete the owner's first email verification, review company-specific word choices, check real mobile devices and traffic controls, and document a tested backup/restore process. Automatic daily selection skips answers used in the prior 180 days and reserved future daily answers; an exhausted pool fails clearly rather than changing the repeat rule.
 
 Documentation and handoff: [context/README.md](context/README.md). Brand/font notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Submission responsiveness and custom links
+
+Custom challenge generation, parsing, and sharing use a shared route helper that preserves every token character. A submitted guess shows pending feedback immediately while the server verifies it. Only the newly scored row animates, with a 140 ms reveal and 15 ms tile stagger (200 ms maximum); older/resumed rows stay still. Failed submissions retain the typed guess and idempotency key for safe retry.
