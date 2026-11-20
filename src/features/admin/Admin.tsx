@@ -3,6 +3,7 @@ import { CalendarDays, Clapperboard, Copy, LogOut, Shuffle, Save, Check, RotateC
 import { adminSupabase, configured, rpc, type AdminData, type Puzzle } from '../../lib/api'
 import { fa, isWord, normalize, tehranDate } from '../../game/engine'
 import { adminVerification } from '../../lib/adminVerification'
+import { challengeUrl } from '../../lib/routes'
 
 const statusName: Record<string, string> = { draft: 'پیش‌نویس', scheduled: 'زمان‌بندی‌شده', published: 'منتشرشده', retired: 'بسته‌شده', revoked: 'پیوند لغوشده' }
 export default function Admin() {
@@ -54,7 +55,7 @@ export default function Admin() {
     await task(async () => {
       const saved = await rpc<{ token?: string }>('admin_save', { id: editing?.id, revision: editing?.revision, answer: normalize(answer), kind, date: kind === 'daily' ? date : null, publish }, true)
       await refresh(); setEditing(null); setAnswer('')
-      if (saved.token) { setLink(`${location.origin}${location.pathname}#/p/${saved.token}`); setMessage('چالش ساخته شد. پیوند را همین حالا ذخیره کنید؛ دوباره نمایش داده نمی‌شود.') }
+      if (saved.token) { setLink(challengeUrl(saved.token)); setMessage('چالش ساخته شد. پیوند را همین حالا ذخیره کنید؛ دوباره نمایش داده نمی‌شود.') }
       else setMessage(publish ? 'واژه با موفقیت زمان‌بندی شد.' : 'پیش‌نویس ذخیره شد.')
     })
   }

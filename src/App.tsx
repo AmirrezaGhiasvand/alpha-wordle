@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { BarChart3, CircleHelp, Settings2, Delete, Check, Share2, RotateCw, Sun, Moon } from 'lucide-react'
+import { BarChart3, CircleHelp, Settings2, Delete, Check, Share2, RotateCw, Sun, Moon, LoaderCircle } from 'lucide-react'
 import { fa, ALPHABET, keyMarks, normalize, shareText, tehranDate, type Game, type Mark } from './game/engine'
 import { openDemo, submitDemo, resetDemo } from './game/demo'
 import { configured, guessGame, openGame, resetGame } from './lib/api'
@@ -7,6 +7,7 @@ import { read, recordResult, write } from './lib/storage'
 import Modal from './components/Modal'
 import Statistics from './components/Statistics'
 import Admin from './features/admin/Admin'
+import { challengeToken, challengeUrl } from './lib/routes'
 
 const keyboard = ['ض ص ث ق ف غ ع ه خ ح ج چ', 'ش س ی ب ل ا ت ن م ک گ', 'ظ ط ز ر ذ د پ و ژ آ'].map(row => row.split(' '))
 const meanings: Record<Mark, string> = { correct: 'حرف درست، جای درست', present: 'حرف درست، جای دیگر', absent: 'در واژه نیست' }
@@ -24,6 +25,7 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [view, setView] = useState<View>(null)
   const [shake, setShake] = useState(0)
+  const [revealingRow, setRevealingRow] = useState<number | null>(null)
   const [today, setToday] = useState(tehranDate())
   const [prefs, setPrefs] = useState<Preferences>(() => {
     const saved = read<Partial<Preferences>>('preferences-v2', {})
@@ -33,7 +35,7 @@ export default function App() {
   const inFlight = useRef(false)
   const loadId = useRef(0)
   const serverOffset = useRef(0)
-  const token = path.startsWith('#/p/') ? path.slice(5) : undefined
+  const token = challengeToken(path)
   const admin = path.startsWith('#/admin')
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function App() {
   }, [])
   const load = useCallback(async () => {
     const generation = ++loadId.current
-    setLoading(true); setError(''); setGame(null); setLetters(''); request.current = null
+    setLoading(true); setError(''); setGame(null); setLetters(''); setRevealingRow(null); request.current = null
     try {
       if (token && !configured) throw new Error('برای باز کردن چالش، اتصال به سرور باید تنظیم شود.')
       const next = configured ? await openGame(token) : openDemo()
@@ -73,7 +75,7 @@ export default function App() {
   useEffect(() => {
     if (!game || game.status === 'playing' || admin) return
     recordResult({ id: game.id, date: game.date, won: game.status === 'won', attempts: game.attempts.length, kind: game.kind })
-    const timer = window.setTimeout(() => setView('stats'), 850)
+    const timer = window.setTimeout(() => setView('stats'), 320)
     return () => clearTimeout(timer)
   }, [game, admin])
   useEffect(() => {
@@ -81,6 +83,16 @@ export default function App() {
     const timer = window.setTimeout(() => setNotice(''), 3500)
     return () => clearTimeout(timer)
   }, [notice])
+  useEffect(() => {
+    if (revealingRow === null) return
+    const timer = window.setTimeout(() => setRevealingRow(null), 240)
+    return () => clearTimeout(timer)
+  }, [revealingRow])
+  useEffect(() => {
+    if (!shake) return
+    const timer = window.setTimeout(() => setShake(0), 220)
+    return () => clearTimeout(timer)
+  }, [shake])
 
   const submit = useCallback(async () => {
     if (!game || inFlight.current || game.status !== 'playing') return
@@ -94,7 +106,7 @@ export default function App() {
     try {
       const next = configured ? await guessGame(game, guess, request.current.id) : await submitDemo(game, guess)
       if (generation !== loadId.current) return
-      setGame(next); setLetters(''); request.current = null
+      setRevealingRow(game.attempts.length); setGame(next); setLetters(''); request.current = null
     } catch (e) { if (generation === loadId.current) { setNotice(e instanceof Error ? e.message : 'دوباره تلاش کن.'); setShake(n => n + 1) } }
     finally { inFlight.current = false; setBusy(false) }
   }, [game, letters])
@@ -124,7 +136,7 @@ export default function App() {
 
   async function share() {
     if (!game || game.status === 'playing') return
-    const text = shareText(game, `${location.origin}${location.pathname}${token ? `#/p/${token}` : '#/play'}`)
+    const text = shareText(game, token ? challengeUrl(token) : `${location.origin}${location.pathname}#/play`)
     try { await navigator.clipboard.writeText(text); setNotice('نتیجه کپی شد.') }
     catch { setNotice('کپی خودکار ممکن نشد؛ متن نتیجه را انتخاب و کپی کن.'); setView('stats') }
   }
@@ -135,7 +147,7 @@ export default function App() {
     try {
       const next = configured ? await resetGame(game) : resetDemo(game)
       if (generation !== loadId.current) return
-      setGame(next); setLetters(''); setShake(0); request.current = null; setView(null)
+      setGame(next); setLetters(''); setShake(0); setRevealingRow(null); request.current = null; setView(null)
       setNotice('بازی از اول شروع شد.')
     } catch (e) { setNotice(e instanceof Error ? e.message : 'شروع دوباره انجام نشد.') }
     finally { inFlight.current = false; setBusy(false) }
@@ -174,10 +186,10 @@ export default function App() {
             const attempt = game?.attempts[row]
             const active = !!game && row === game.attempts.length && game.status === 'playing'
             const text = attempt?.guess || (active ? letters : '')
-            return <div key={`${row}-${active ? shake : 'done'}`} className={`board-row ${active && shake ? 'shake' : ''}`} aria-label={`ردیف ${fa(row + 1)}`}>
+            return <div key={row} className={`board-row ${active && shake ? 'shake' : ''} ${active && busy ? 'is-submitting' : ''}`} aria-label={`ردیف ${fa(row + 1)}`}>
               {Array.from({ length: 5 }, (_, col) => {
                 const mark = attempt?.marks[col]
-                return <div key={col} className={`tile ${mark || ''} ${!mark && text[col] ? 'filled' : ''} ${active ? 'active' : ''}`} style={{ '--reveal-delay': `${col * 90}ms` } as React.CSSProperties}
+                return <div key={col} className={`tile ${mark || ''} ${mark && row === revealingRow ? 'revealing' : ''} ${!mark && text[col] ? 'filled' : ''} ${active ? 'active' : ''}`} style={{ '--reveal-delay': `${col * 15}ms` } as React.CSSProperties}
                   aria-label={`${text[col] || 'خالی'}${mark ? `، ${meanings[mark]}` : ''}`}><span>{text[col]}</span></div>
               })}
             </div>
@@ -192,7 +204,7 @@ export default function App() {
         <section className="game-controls" aria-label="کنترل‌های بازی">
         <div className="keyboard" role="group" aria-label="صفحه‌کلید فارسی" dir="rtl">
           {keyboard.map((row, i) => <div className="keyboard-row" key={i}>
-            {i === 2 && <button className="key key-action enter" onClick={() => { input('Enter'); (document.activeElement as HTMLElement)?.blur() }} disabled={loading || busy || game?.status !== 'playing'} aria-label="ثبت حدس"><Check size={20} /><span>ثبت</span></button>}
+            {i === 2 && <button className="key key-action enter" onClick={() => { input('Enter'); (document.activeElement as HTMLElement)?.blur() }} disabled={loading || busy || game?.status !== 'playing'} aria-label="ثبت حدس" aria-busy={busy}>{busy ? <LoaderCircle className="submission-spinner" size={20} /> : <Check size={20} />}<span>ثبت</span></button>}
             {row.map(letter => <button key={letter} className={`key ${marks[letter] || ''}`} aria-label={`${letter}${marks[letter] ? `، ${meanings[marks[letter]]}` : ''}`} disabled={loading || busy || game?.status !== 'playing'} onClick={() => { input(letter); (document.activeElement as HTMLElement)?.blur() }}>{letter}</button>)}
             {i === 2 && <button className="key key-action" onClick={() => { input('Backspace'); (document.activeElement as HTMLElement)?.blur() }} disabled={loading || busy || game?.status !== 'playing'} aria-label="پاک کردن حرف"><Delete size={20} /></button>}
           </div>)}
