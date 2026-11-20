@@ -62,3 +62,5 @@ Source pushed to `origin/main` and independently verified through GitHub API. Im
 Latest implementation: `202611200002_replay.sql` is an additive migration for round-safe resets. Apply it after the initial migration; previous installations need this upgrade before using reset controls. Source changes are pushed after local verification.
 
 Logo refinement (2026-11-20): added `public/alpha-mark-dark.svg`, preserving the original vector paths and yellow accent while changing blue fills to a pale foreground. Both logo variants have transparent backgrounds and identical dimensions/viewBox. Removed all dark-theme logo padding/background plates. Browser checks assert equal rendered logo size, zero padding, and transparency across both themes at all 11 tested viewport sizes.
+
+Logo update (2026-11-20): the owner requested a completely white dark-theme logo. All dark-logo path fills are now #FFFFFF, including the former yellow accents. Transparency, original paths, viewBox, and dimensions remain unchanged; this supersedes the earlier two-color dark variant.
