@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { CalendarDays, Clapperboard, Copy, LogOut, Shuffle, Save, Check, RotateCw } from 'lucide-react'
 import { adminSupabase, configured, rpc, type AdminData, type Puzzle } from '../../lib/api'
 import { fa, isWord, normalize, tehranDate } from '../../game/engine'
+import { adminVerification } from '../../lib/adminVerification'
 
 const statusName: Record<string, string> = { draft: 'پیش‌نویس', scheduled: 'زمان‌بندی‌شده', published: 'منتشرشده', retired: 'بسته‌شده', revoked: 'پیوند لغوشده' }
 export default function Admin() {
@@ -39,9 +40,9 @@ export default function Admin() {
         // Auth may create the identity; only the private verified-email allowlist can grant admin membership.
         const { error } = await adminSupabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
         if (error) throw new Error('ارسال کد ممکن نشد. ایمیل یا تنظیمات ورود را بررسی کنید.')
-        setSent(true); setMessage('کد ورود را از ایمیل خود وارد کنید.')
+        setSent(true); setMessage('کد یا پیوند ورود را از ایمیل خود وارد کنید.')
       } else {
-        const { error } = await adminSupabase.auth.verifyOtp({ email, token: code, type: 'email' })
+        const { error } = await adminSupabase.auth.verifyOtp(adminVerification(code,email,import.meta.env.VITE_SUPABASE_URL))
         if (error) throw new Error('کد معتبر نیست یا منقضی شده است.')
       }
     })
@@ -63,7 +64,7 @@ export default function Admin() {
     {!configured ? <section className="setup-panel"><h2>اتصال به Supabase هنوز تنظیم نشده است</h2><p>برای فعال شدن ورود مدیر، انتخاب واژهٔ روز و چالش‌های مشترک، پروژهٔ Supabase را طبق راهنمای مخزن متصل کنید.</p><a className="primary" href="#/play">بازگشت به بازی</a></section> : !authenticated ? <form className="login-panel" onSubmit={login}>
       <h2>ورود مدیر</h2><p className="muted">فقط حساب‌های تعیین‌شده توسط مالک دسترسی دارند.</p>
       <label>ایمیل<input required type="email" dir="ltr" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} disabled={sent || busy} placeholder="name@example.com" /></label>
-      {sent && <label>کد ورود<input required inputMode="numeric" autoComplete="one-time-code" dir="ltr" value={code} onChange={e => setCode(e.target.value)} placeholder="کد ایمیل" /></label>}
+      {sent && <label>کد یا پیوند ورود<input required autoComplete="one-time-code" dir="ltr" value={code} maxLength={4096} onChange={e => setCode(e.target.value)} placeholder="کد یا پیوند ایمیل" /><span className="muted small">اگر ایمیل پیوند دارد، آن را بدون باز کردن کپی و اینجا وارد کنید.</span></label>}
       <button className="primary full" disabled={busy}>{busy ? 'لطفاً صبر کنید…' : sent ? 'ورود' : 'دریافت کد ورود'}</button>
       {sent && <button className="text-button" type="button" onClick={() => { setSent(false); setCode('') }}>تغییر ایمیل یا ارسال دوباره</button>}
     </form> : !data ? <section className="setup-panel"><p>در حال بررسی دسترسی مدیریت…</p><button className="secondary" disabled={busy} onClick={() => void task(refresh)}><RotateCw size={16} />تلاش دوباره</button></section> : <>

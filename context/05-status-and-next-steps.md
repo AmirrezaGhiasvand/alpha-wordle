@@ -1,11 +1,11 @@
 # Current status and next steps
 
-Updated: 2026-11-20. Phase: live backend ready; GitHub Pages release in progress.
+Updated: 2026-11-20. Phase: game deployed; admin default-email compatibility update publishing.
 
 ## Verified implementation
 
 - Repository: https://github.com/AmirrezaGhiasvand/alpha-wordle (public, main branch).
-- Site URL: https://amirrezaghiasvand.github.io/alpha-wordle/ (publication being verified).
+- Site URL: https://amirrezaghiasvand.github.io/alpha-wordle/ (HTTP 200, guest play verified).
 - Supabase: project darstcsugjxjgpmeotxl, https://darstcsugjxjgpmeotxl.supabase.co.
 - GitHub Actions public URL/publishable-key variables are configured. No privileged key is in source or the browser.
 - Four migrations applied: initial schema, replay rounds, verified admin enrollment, and lookup indexes.
@@ -19,7 +19,7 @@ Updated: 2026-11-20. Phase: live backend ready; GitHub Pages release in progress
 
 ## Validation
 
-- 36 local tests passed (engine, dictionary, admin enrollment, authorization, replay, UI).
+- 39 local tests passed (engine, dictionary, admin enrollment, authorization, replay, UI).
 - Existing 22 viewport/theme checks and win/replay/reset/reload browser journey passed before production configuration. Live-site checks are performed after publication.
 - Production build with real Supabase public configuration passes.
 - `npm run check:backend` passes against the live project.
@@ -28,7 +28,7 @@ Updated: 2026-11-20. Phase: live backend ready; GitHub Pages release in progress
 
 ## Release and remaining user step
 
-The user enabled anonymous sign-ins and supplied the admin email. They are updating both Magic Link and Confirm Signup templates to include `{{ .Token }}`. After the site is published, the owner must sign in at `#/admin`, request a code, and verify the email. Do not claim the owner has completed email verification until observed.
+The user enabled anonymous sign-ins and supplied the admin email. They do not have a separate host/mail server, so the admin form now accepts default Supabase email links as well as OTP codes; custom templates are optional. Only project-origin verification links of type email/magiclink/signup are accepted; redirects are ignored. The owner must sign in at `#/admin`, request an email, then enter its code or copy/paste the original link without opening it. Email verification activates the privately approved role. Do not claim the owner has completed verification until observed.
 
 Next: push the release, monitor Pages Actions to completion, verify live mobile/desktop play, and record the actual deployment result below. Real-device Safari testing and backup/retention operations remain maintenance follow-ups.
 
@@ -40,4 +40,4 @@ Supabase skills were installed from supabase/agent-skills and read during setup.
 
 ## Deployment result
 
-Release verification in progress; update after the Pages workflow completes.
+GitHub Pages release e6b3552 completed successfully (Actions run 44769022356). CI also passed. Live checks at desktop 1440x900 and mobile 390x844 verified real Supabase play, a submitted guess, reset, both themes with equal logo dimensions, no scrolling, font loading, and admin login screen. A follow-up update adds default-email-link admin verification; record its final deployment below.

@@ -32,7 +32,7 @@ Tests cover Persian normalization and scoring, frontend interactions, and the ac
 1. Create/select an owner-managed Supabase project. Apply all migrations in `supabase/migrations/` in filename order through the SQL editor or Supabase CLI: [initial schema](supabase/migrations/202611200001_wordle.sql), then [replay support](supabase/migrations/202611200002_replay.sql), [verified admin enrollment](supabase/migrations/20261120155409_admin_enrollment.sql), and [lookup indexes](supabase/migrations/20261120155905_wordle_lookup_indexes.sql). Do not expose `wordle_private` in API settings.
 2. Run `npm run dictionary:sql` and import `.local/accepted-guesses.sql` to populate accepted guesses without approving answers. For development only, run [seed-development.sql](supabase/seed-development.sql) to approve the starter answer fixtures. The separate launch pool contains 340 selected answers; run `npm run answers:sql` and import the generated approval update to enable it. No dictionary import approves answers automatically. See [dictionary documentation](data/README.md).
 3. Enable anonymous sign-ins for players. Configure signup abuse protection and provider rate limits suitable for launch traffic. Test anonymous signup from the intended audience's region.
-4. Set both Magic Link and Confirm Signup email templates to include `{{ .Token }}` so the admin UI can accept an email OTP; it does not consume a magic-link callback. Configure a reliable email sender and verify OTP delivery. The login form may create an Auth identity, but only an owner-approved, verified email receives admin membership.
+4. The admin form accepts either an emailed code or the original Supabase confirmation link copied from the email without opening it. Default email templates can stay unchanged; the form verifies the token directly and does not follow the link redirect. Optionally include `{{ .Token }}` in Magic Link/Confirm Signup templates if you prefer codes. Supabase built-in email delivery is restricted to project-team addresses; configure an SMTP service if broader delivery is needed. The login form may create an Auth identity, but only an owner-approved, verified email receives admin membership.
 5. In the SQL editor, approve the owner's admin email privately (do not commit addresses to source):
 
 ```sql
@@ -41,7 +41,7 @@ values (lower('REPLACE_WITH_OWNER_EMAIL'));
 ```
 
 6. Copy `.env.example` to `.env.local`. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the project's public connection settings. **Never use a service-role or secret key.** Restart Vite after changing variables.
-7. Open `#/admin`, enter the pre-created admin email, enter its OTP, and create a draft. Schedule today's word and verify that two separate browser profiles receive the same game. Publish a recording challenge and copy its link immediately; only its hash is stored.
+7. Open `#/admin`, enter the pre-created admin email, enter its code or paste the original email link, and create a draft. Schedule today's word and verify that two separate browser profiles receive the same game. Publish a recording challenge and copy its link immediately; only its hash is stored.
 
 Database tables use default-deny RLS and live outside the exposed schema. The authenticated `wordle_api` RPC is the only application entry point. Admin membership, puzzle ownership, six-turn enforcement, scoring, scheduling, and retry handling run in PostgreSQL transactions. No Edge Function deployment is needed in this first implementation.
 
@@ -69,6 +69,6 @@ The header reset control asks for confirmation before clearing the current round
 
 ## Remaining launch work
 
-GitHub and Supabase are connected, database migrations are applied, and the live guest/game API passed smoke tests. Complete admin email-template configuration and first email verification, review company-specific word choices, check real mobile devices and traffic controls, and document a tested backup/restore process. Automatic daily selection skips answers used in the prior 180 days and reserved future daily answers; an exhausted pool fails clearly rather than changing the repeat rule.
+GitHub and Supabase are connected, database migrations are applied, and the live guest/game API passed smoke tests. Complete the owner's first email verification, review company-specific word choices, check real mobile devices and traffic controls, and document a tested backup/restore process. Automatic daily selection skips answers used in the prior 180 days and reserved future daily answers; an exhausted pool fails clearly rather than changing the repeat rule.
 
 Documentation and handoff: [context/README.md](context/README.md). Brand/font notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
