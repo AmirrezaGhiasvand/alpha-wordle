@@ -61,7 +61,7 @@ The header reset control asks for confirmation before clearing the current round
 
 ## Admin operations
 
-- Choose an approved five-letter word or generate a random candidate. Random selection does not automatically publish.
+- Manually choose any five-letter word in the accepted dictionary, or generate a candidate from the smaller curated random pool. Manual selection does not automatically add that word to the random pool, and random selection does not automatically publish.
 - Save a draft, schedule a Tehran calendar date (the date picker uses ISO dates), or publish an unlisted recording challenge.
 - Edit drafts and unused future schedules with revision checks. Today's published answer is locked.
 - Recording links grant play access to anyone holding the link. Revocation blocks new games; started games can finish.

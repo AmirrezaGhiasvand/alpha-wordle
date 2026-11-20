@@ -43,6 +43,8 @@ Statuses: **confirmed** = requested by owner; **proposed** = planning recommenda
 | D32 | Implemented | Shared custom-link parser preserves all 64 token characters; use prefix length instead of a numeric slice |
 | D33 | Implemented | New row only: 140 ms opacity/translate reveal with 15 ms stagger; immediate pending feedback and stable row elements; no old-row animation |
 
+| D34 | Implemented | Manual admin words may use the full accepted dictionary; curated eligibility applies only to random suggestions and automatic daily answers |
+
 ## Historical architecture alternative
 
 Supabase is now approved. If the owner later requires zero services beyond GitHub, use repository/Actions administration and publish static puzzle data. This removes secure in-app administration and makes client-delivered answers inspectable, including scheduled data if shipped. Never claim that hashing a five-letter answer or hiding it in JavaScript protects it from inspection or enumeration. Revisit D06 and the definition of done explicitly if selecting this alternative.
