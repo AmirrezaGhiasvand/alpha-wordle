@@ -1,6 +1,6 @@
 # Current status and next steps
 
-Last updated: 2026-11-20. Phase: implemented local app; source publication in progress; hosted backend pending.
+Last updated: 2026-11-20. Phase: implemented local app; source published; hosted backend pending.
 
 ## Current state
 
@@ -40,7 +40,7 @@ The board now sizes to its available container using viewport/container units; l
 
 ## Immediate next steps
 
-1. Complete and verify the source push/CI; record the actual commit and remote result below.
+1. Monitor the GitHub CI run; source push and remote commit are verified.
 2. Connect/select the owner's Supabase project. Apply the migration, configure anonymous guest sign-in and admin OTP, and add the verified admin UUID through owner-controlled SQL.
 3. Import accepted guesses with `npm run dictionary:sql`; review/approve a production answer pool large enough for the 180-day exclusion rule. Development fixtures are not a production calendar.
 4. Set the public Supabase URL/publishable key as GitHub Actions repository variables. Enable Pages Actions hosting and deploy when backend checks pass.
@@ -56,4 +56,4 @@ Never repeat the Supabase or GitHub repository authorization question: both are 
 
 ## Publication result
 
-Repository created and origin configured. Final push/CI result is recorded after verification.
+Source pushed to `origin/main` and independently verified through GitHub API. Implementation commit: `6356ab84ea07`. Pages Actions hosting is configured. The Pages workflow was skipped as intended because Supabase variables are absent. CI was running when last checked; its result can be viewed at https://github.com/AmirrezaGhiasvand/alpha-wordle/actions. Local verification remains 32 tests, 22 layout checks, and a passing production build.
