@@ -25,8 +25,21 @@ try {
     await page.goto(url)
     await page.getByText('۰ از ۶ تلاش', { exact:true }).waitFor()
     await page.evaluate(() => document.fonts.ready)
+    let logoSize
     for (const theme of ['dark','light']) {
       if (await page.locator('html').getAttribute('data-theme') !== theme) await page.getByRole('button', { name:'تغییر پوسته', exact:true }).click()
+      await page.locator('.identity img').evaluate(image => image.decode())
+      const logo = await page.locator('.identity').evaluate(element => {
+        const image = element.querySelector('img').getBoundingClientRect()
+        const style = getComputedStyle(element)
+        return { width:image.width,height:image.height,background:style.backgroundColor,padding:style.padding,src:element.querySelector('img').getAttribute('src') }
+      })
+      assert.equal(logo.background,'rgba(0, 0, 0, 0)')
+      assert.equal(logo.padding,'0px')
+      assert.match(logo.src, theme === 'dark' ? /alpha-mark-dark\.svg$/ : /alpha-mark\.svg$/)
+      const size = { width:logo.width,height:logo.height }
+      if (logoSize) assert.deepEqual(size,logoSize,`${width}x${height}: theme changes logo size`)
+      logoSize = size
       const layout = await page.evaluate(() => {
         const rect = selector => {
           const r = document.querySelector(selector).getBoundingClientRect()

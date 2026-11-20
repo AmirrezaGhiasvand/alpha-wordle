@@ -90,3 +90,5 @@ These are acceptance requirements for the prototype and final design, not option
 Historical working name (removed from interface): **واژه آلفا**. This is a placeholder, not a confirmed company product name. Default labels describe today's puzzle, recording challenge, attempts, rules, and sharing in Persian. Use encouraging, concise copy suitable for Alpha School's audience; no copied marketing paragraphs are needed.
 
 Implemented: the themed local game with licensed Vazirmatn, responsive viewport fitting, and light/dark themes. Still pending: final game name, company word policy, optional higher-resolution wordmark, and hosted integration/real-device review.
+
+Logo refinement (2026-11-20): added `public/alpha-mark-dark.svg`, preserving the original vector paths and yellow accent while changing blue fills to a pale foreground. Both logo variants have transparent backgrounds and identical dimensions/viewBox. Removed all dark-theme logo padding/background plates. Browser checks assert equal rendered logo size, zero padding, and transparency across both themes at all 11 tested viewport sizes.

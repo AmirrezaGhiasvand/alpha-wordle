@@ -147,7 +147,7 @@ export default function App() {
   return <div className={`app ${admin ? 'admin-app' : 'game-app'}`}>
     <header className="site-header">
       <div className="header-inner">
-        <a href="#/play" className="identity" aria-label="مدرسهٔ آلفا، صفحهٔ بازی"><img src={`${base}alpha-mark.svg`} width="111" height="40" alt="مدرسهٔ آلفا" /></a>
+        <a href="#/play" className="identity" aria-label="مدرسهٔ آلفا، صفحهٔ بازی"><img src={`${base}${prefs.dark ? 'alpha-mark-dark.svg' : 'alpha-mark.svg'}`} width="111" height="40" alt="مدرسهٔ آلفا" /></a>
         <nav className="header-actions" aria-label="ابزارهای بازی">
           {!admin && <button className="icon-button reset-button" onClick={() => setView('reset')} disabled={loading || busy || !game} aria-label="شروع دوباره" title="شروع دوباره"><RotateCw size={20} /></button>}
           <button className="icon-button theme-toggle" onClick={() => setPrefs(p => ({ ...p, dark: !p.dark }))} aria-label="تغییر پوسته" aria-pressed={prefs.dark} title={prefs.dark ? 'پوستهٔ روشن' : 'پوستهٔ تیره'}>{prefs.dark ? <Sun size={21} /> : <Moon size={21} />}</button>
