@@ -49,7 +49,7 @@ Database tables use default-deny RLS and live outside the exposed schema. The au
 
 1. Create the owner's repository, commit/push this project to `main`, and select **GitHub Actions** as its Pages source.
 2. Add repository Actions variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. These are intentionally public client values, not privileged credentials.
-3. The workflows run tests and the production build, then deploy `dist/`. The Pages job is skipped until both Supabase variables are set, preventing an accidental demo release. CI still validates the app without a live backend.
+3. The workflow first runs `npm run check:backend` to verify anonymous authentication and a safe daily puzzle response, then runs tests/build and deploys `dist/`. The Pages job is skipped until both Supabase variables are set, preventing an accidental demo release. CI still validates the app without a live backend.
 4. The default relative asset base (`./`) and hash routes work on `https://OWNER.github.io/REPOSITORY/`. Public challenge links look like `#/p/OPAQUE_TOKEN`. `#/admin` is an authenticated administration screen, not a server route.
 5. Verify the deployed URL on mobile, keyboard/paste input, font loading, admin OTP, daily rollover, recording links, retry behavior, and revoked links. Do not claim production readiness from local tests alone.
 
