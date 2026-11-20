@@ -1,0 +1,32 @@
+{
+  "site": "https://alphaschool.ir/",
+  "assets": [
+    {
+      "file": "alpha-logo.png",
+      "source": "https://alphaschool.ir/img/app-logo.png",
+      "retrieved": "2026-11-20",
+      "sha256": "02016a08d3e8aa200d8b02549e5623bb8e3ea4ba9422f7708723392e764b0fbb"
+    },
+    {
+      "file": "alpha-header-mark.svg",
+      "source": "https://alphaschool.ir/",
+      "retrieved": "2026-11-20",
+      "sha256": "66457b7cf8d2b0fc42215059c665e136e1c0594295e3da7883b2b4429ab390d8"
+    }
+  ],
+  "observed_colors": {
+    "logo_blue": "#11538D",
+    "logo_yellow": "#F9DC08",
+    "primary_blue": "#006FEE",
+    "banner_blue": "#064E8C",
+    "banner_yellow": "#FFDF45",
+    "light_blue": "#E6F1FE",
+    "text": "#171717"
+  },
+  "observed_fonts": [
+    "iranyekanxFont",
+    "lahzeFont"
+  ],
+  "font_reuse": "License not verified; do not redistribute website font binaries.",
+  "verification": "Logo viewed; HTML and CSS inspected; live browser unavailable."
+}

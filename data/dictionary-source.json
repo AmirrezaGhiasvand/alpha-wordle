@@ -1,0 +1,11 @@
+{
+  "project": "roshan-research/hazm",
+  "source": "https://raw.githubusercontent.com/roshan-research/hazm/a399c8293c5165544aaef76ead78bda9f4275888/hazm/data/words.dat",
+  "commit": "a399c8293c5165544aaef76ead78bda9f4275888",
+  "retrieved": "2026-11-20",
+  "source_sha256": "e9e212a774beb05c1bfe2fe7646d068e11e093f78696fc23fbbc2baa2b795fe1",
+  "license": "MIT (upstream repository LICENSE)",
+  "accepted_word_count": 43773,
+  "transformation": "NFC; Arabic yeh/kaf to Persian; remove vowel marks and tatweel; exactly five allowed Persian letters; exclude joiners/whitespace/other scripts; deduplicate.",
+  "editorial_status": "Filtered lexical candidates; requires company audience suitability review before public launch. No words are automatically eligible as daily answers."
+}
