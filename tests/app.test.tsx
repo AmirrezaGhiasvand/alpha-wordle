@@ -13,7 +13,7 @@ describe('local playable interface', () => {
   it('plays a complete Persian game and restores progress on reload', async () => {
     const view = render(<App />)
     await screen.findByText('۰ از ۶ تلاش')
-    expect(screen.getByText('نسخهٔ آزمایشی')).toBeDefined()
+    expect(screen.queryByText('نسخهٔ آزمایشی')).toBeNull()
     await enter('باران')
     await screen.findByText('آفرین! واژه را پیدا کردی.')
     expect(screen.getByRole('button', { name: 'دیدن نتیجه' })).toBeDefined()

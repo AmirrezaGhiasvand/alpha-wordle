@@ -21,7 +21,7 @@ export default function Statistics({ game, onShare }: { game?: Game | null; onSh
     <div className="distribution">{distribution.map((count, i) => <div className="distribution-row" key={i}>
       <span>{fa(i + 1)}</span><div className={game?.status === 'won' && game.attempts.length === i + 1 ? 'highlight' : ''} style={{ width: `${Math.max(8, count / max * 100)}%` }}>{fa(count)}</div>
     </div>)}</div>
-    <p className="muted small">آمار روی همین مرورگر ذخیره می‌شود. بازی آزمایشی در آمار حساب نمی‌شود.</p>
+    <p className="muted small">آمار روی همین مرورگر ذخیره می‌شود.</p>
     {game && game.status !== 'playing' && <button className="primary full" onClick={onShare}>اشتراک‌گذاری نتیجه</button>}
   </>
 }

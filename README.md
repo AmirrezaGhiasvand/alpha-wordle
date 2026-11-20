@@ -15,7 +15,7 @@ npm ci
 npm run dev
 ```
 
-Open the printed local URL. Without environment variables, the app runs a clearly labeled local demo with a fixed development answer. It accepts guesses from a filtered Hazm dictionary; the source and MIT license are preserved in `data/`. The demo is for UI review; it does not publish puzzles or simulate working administration.
+Open the printed local URL. Without environment variables, the app runs a local preview with a fixed development answer. It accepts guesses from a filtered Hazm dictionary; the source and MIT license are preserved in `data/`. The local preview is for UI review; it does not publish puzzles or simulate working administration. Demo/test labels are not shown in the interface. The deployment workflow still requires the live Supabase configuration.
 
 ```sh
 npm test

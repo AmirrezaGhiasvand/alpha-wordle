@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BarChart3, CircleHelp, Settings2, Delete, Check, Share2, RotateCw, Sun, Moon } from 'lucide-react'
 import { fa, ALPHABET, keyMarks, normalize, shareText, tehranDate, type Game, type Mark } from './game/engine'
-import { openDemo, submitDemo, resetDemo, DEMO_WORDS } from './game/demo'
+import { openDemo, submitDemo, resetDemo } from './game/demo'
 import { configured, guessGame, openGame, resetGame } from './lib/api'
 import { read, recordResult, write } from './lib/storage'
 import Modal from './components/Modal'
@@ -202,7 +202,7 @@ export default function App() {
       </>}
     </main>}
 
-    <footer className="site-footer"><a className="school-signature" href="https://alphaschool.ir/" target="_blank" rel="noreferrer">مدرسهٔ <b>آلفا</b></a>{!configured ? <span className="demo-label" title="واژهٔ ثابت برای بررسی رابط؛ سرور هنوز متصل نیست">نسخهٔ آزمایشی</span> : <span className="footer-caption">هر روز، یک واژهٔ تازه</span>}{!admin && <a className="admin-link" href="#/admin">مدیریت</a>}{admin && <a className="admin-link" href="#/play">بازگشت به بازی</a>}</footer>
+    <footer className="site-footer"><a className="school-signature" href="https://alphaschool.ir/" target="_blank" rel="noreferrer">مدرسهٔ <b>آلفا</b></a><span className="footer-caption">هر روز، یک واژهٔ تازه</span>{!admin && <a className="admin-link" href="#/admin">مدیریت</a>}{admin && <a className="admin-link" href="#/play">بازگشت به بازی</a>}</footer>
     <div className={`toast ${notice ? 'visible' : ''}`} role="status" aria-live="polite">{notice}</div>
 
     {view === 'help' && <Modal title="چطور بازی کنیم؟" close={() => setView(null)}>
@@ -210,7 +210,6 @@ export default function App() {
       <div className="example-row" aria-label="نمونهٔ رنگ‌ها">{[...'پرواز'].map((l, i) => <span className={`tile ${i === 0 ? 'correct' : i === 2 ? 'present' : i === 4 ? 'absent' : ''}`} key={i}>{l}</span>)}</div>
       <ul className="help-list"><li><i className="correct" /><div><strong>سبز: درست و سر جای خودش</strong><p>این حرف دقیقاً در همین جای واژه است.</p></div></li><li><i className="present" /><div><strong>زرد: درست، در جای دیگر</strong><p>حرف در واژه هست، اما جای آن فرق می‌کند.</p></div></li><li><i className="absent" /><div><strong>خاکستری: در واژه نیست</strong><p>تعداد تکرار یک حرف هم مهم است.</p></div></li></ul>
       <p className="muted">از صفحه‌کلید فارسی یا دکمه‌های پایین جدول استفاده کن. واژهٔ روز برای همه یکسان است و نیمه‌شب به وقت تهران عوض می‌شود.</p>
-      {!configured && <details className="demo-words"><summary>چند واژه برای امتحان نسخهٔ آزمایشی</summary><p>{DEMO_WORDS.slice(0, 18).join('، ')}</p><p className="small">این نمونه برای بررسی رابط است؛ واژهٔ آن روزانه عوض نمی‌شود.</p></details>}
       <button className="primary full" onClick={() => setView(null)}>شروع کنیم</button>
     </Modal>}
     {view === 'stats' && <Modal title={game?.status !== 'playing' && game ? 'نتیجهٔ بازی' : 'آمار بازی‌ها'} close={() => setView(null)}><Statistics game={game} onShare={() => void share()} />{game && game.status !== 'playing' && <><button className="secondary full replay-button" disabled={busy} onClick={() => void restart()}><RotateCw size={17} />بازی دوباره</button><textarea className="share-fallback" aria-label="متن نتیجه برای کپی" readOnly value={shareText(game, `${location.origin}${location.pathname}${token ? `#/p/${token}` : '#/play'}`)} /></>}</Modal>}
