@@ -2,6 +2,7 @@ import { expect, it } from 'vitest'
 import words from '../data/accepted-words.json'
 import { acceptsGuess } from '../src/game/dictionary'
 import { isWord, normalize } from '../src/game/engine'
+import { readFileSync } from 'node:fs'
 
 it('imports only unique normalized five-letter guesses and accepts words beyond the answer fixtures', () => {
   expect(words.length).toBeGreaterThan(40_000)
@@ -9,4 +10,10 @@ it('imports only unique normalized five-letter guesses and accepts words beyond 
   expect(words.every(word => isWord(word) && normalize(word) === word)).toBe(true)
   expect(acceptsGuess('آشپزی')).toBe(true)
   expect(acceptsGuess('ببببب')).toBe(false)
+})
+it('has a curated launch pool larger than the non-repeat window, with every answer accepted as a guess', () => {
+  const answers = readFileSync(new URL('../data/launch-answers.txt', import.meta.url),'utf8').trim().split(/\s+/)
+  expect(answers.length).toBeGreaterThan(180)
+  expect(new Set(answers).size).toBe(answers.length)
+  for (const word of answers) expect(isWord(word) && acceptsGuess(word)).toBe(true)
 })

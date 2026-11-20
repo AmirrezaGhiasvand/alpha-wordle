@@ -34,6 +34,10 @@ Statuses: **confirmed** = requested by owner; **proposed** = planning recommenda
 | D26 | Confirmed | Rounded tiles/navbar, subtle shadows and interaction animations, minimal styling |
 | D27 | Implemented | Confirmed reset and post-game replay restart the same word; first saved result preserved; server round versions reject stale guesses |
 
+| D28 | Implemented | Live answer pool: 340 selected common words, separate from 43,773 accepted guesses and 49 local demo fixtures |
+| D29 | Implemented | Admin self-registration verifies the owner-approved private email allowlist before granting membership; email changes revoke enrollment-derived access |
+| D30 | Implemented | Pages release checks real guest auth and the daily API; unit tests run with live connection values cleared |
+
 ## Historical architecture alternative
 
 Supabase is now approved. If the owner later requires zero services beyond GitHub, use repository/Actions administration and publish static puzzle data. This removes secure in-app administration and makes client-delivered answers inspectable, including scheduled data if shipped. Never claim that hashing a five-letter answer or hiding it in JavaScript protects it from inspection or enumeration. Revisit D06 and the definition of done explicitly if selecting this alternative.

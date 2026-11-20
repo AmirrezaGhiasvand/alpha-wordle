@@ -11,7 +11,8 @@
     "check": "tsc -b",
     "dictionary:sql": "node scripts/dictionary-sql.mjs",
     "test:layout": "node scripts/check-layout.mjs",
-    "check:backend": "node scripts/check-backend.mjs"
+    "check:backend": "node scripts/check-backend.mjs",
+    "answers:sql": "node scripts/approve-answers.mjs"
   },
   "dependencies": {
     "@fontsource-variable/vazirmatn": "^5.2.8",

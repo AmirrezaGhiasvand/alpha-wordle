@@ -36,7 +36,8 @@ export default function Admin() {
     await task(async () => {
       if (!adminSupabase) return
       if (!sent) {
-        const { error } = await adminSupabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+        // Auth may create the identity; only the private verified-email allowlist can grant admin membership.
+        const { error } = await adminSupabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
         if (error) throw new Error('ارسال کد ممکن نشد. ایمیل یا تنظیمات ورود را بررسی کنید.')
         setSent(true); setMessage('کد ورود را از ایمیل خود وارد کنید.')
       } else {

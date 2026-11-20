@@ -28,10 +28,10 @@ describe('database authorization and game transactions', () => {
   beforeAll(async () => {
     db = new PGlite()
     await db.exec(`create role anon; create role authenticated;
-      create schema auth; create table auth.users(id uuid primary key);
+      create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,is_anonymous boolean default false);
       create function auth.uid() returns uuid language sql as $$ select (current_setting('request.jwt.claims',true)::jsonb->>'sub')::uuid $$;
       create function auth.jwt() returns jsonb language sql as $$ select current_setting('request.jwt.claims',true)::jsonb $$;
-      insert into auth.users values ('${ADMIN}'),('${A}'),('${B}');`)
+      insert into auth.users(id) values ('${ADMIN}'),('${A}'),('${B}');`)
     const directory = new URL('../supabase/migrations/', import.meta.url)
     for (const file of (await readdir(directory)).filter(name => name.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(file, directory), 'utf8'))
     await db.exec(await readFile(new URL('../supabase/seed-development.sql', import.meta.url), 'utf8'))
@@ -140,5 +140,17 @@ describe('database authorization and game transactions', () => {
     }
     const r = await db.query<{ word: string }>("select wordle_private.normalize_word('  كِتابيـ ') word")
     expect(r.rows[0].word).toBe('کتابی')
+  })
+  it('enrolls only an approved verified email and revokes enrollment when that email changes', async () => {
+    await db.exec('reset role')
+    await db.query("insert into wordle_private.admin_enrollment(email) values ('owner@example.com')")
+    await db.query("update auth.users set email='owner@example.com',email_confirmed_at=null where id=$1",[A])
+    let r = await db.query<{count:number}>('select count(*)::integer count from wordle_private.admins where user_id=$1',[A])
+    expect(r.rows[0].count).toBe(0)
+    await db.query('update auth.users set email_confirmed_at=now() where id=$1',[A])
+    await asUser(A,false); await call('admin_list')
+    await db.exec('reset role')
+    await db.query("update auth.users set email='other@example.com' where id=$1",[A])
+    await asUser(A,false); await expect(call('admin_list')).rejects.toThrow('not_admin')
   })
 })

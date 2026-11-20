@@ -1,6 +1,6 @@
 # واژه آلفا — Alpha Wordle
 
-A Persian five-letter / six-attempt word game with Alpha School identity, self-hosted Vazirmatn, a mobile-first playing surface, and a Supabase-backed admin workflow. Frontend hosting target: GitHub Pages.
+A Persian five-letter / six-attempt word game with Alpha School identity, self-hosted Vazirmatn, a mobile-first playing surface, and a Supabase-backed admin workflow. Frontend hosting: GitHub Pages; backend: Supabase project `darstcsugjxjgpmeotxl`.
 
 Repository: [AmirrezaGhiasvand/alpha-wordle](https://github.com/AmirrezaGhiasvand/alpha-wordle).
 
@@ -29,15 +29,15 @@ Tests cover Persian normalization and scoring, frontend interactions, and the ac
 
 ## Connect Supabase
 
-1. Create/select an owner-managed Supabase project. Apply all migrations in `supabase/migrations/` in filename order through the SQL editor or Supabase CLI: [initial schema](supabase/migrations/202611200001_wordle.sql), then [replay support](supabase/migrations/202611200002_replay.sql). Do not expose `wordle_private` in API settings.
-2. Run `npm run dictionary:sql` and import `.local/accepted-guesses.sql` to populate accepted guesses without approving answers. For development only, run [seed-development.sql](supabase/seed-development.sql) to approve the starter answer fixtures. Production requires editorial review and a sufficiently large curated answer pool; no production answer list is seeded automatically. See [dictionary documentation](data/README.md).
+1. Create/select an owner-managed Supabase project. Apply all migrations in `supabase/migrations/` in filename order through the SQL editor or Supabase CLI: [initial schema](supabase/migrations/202611200001_wordle.sql), then [replay support](supabase/migrations/202611200002_replay.sql), [verified admin enrollment](supabase/migrations/20261120155409_admin_enrollment.sql), and [lookup indexes](supabase/migrations/20261120155905_wordle_lookup_indexes.sql). Do not expose `wordle_private` in API settings.
+2. Run `npm run dictionary:sql` and import `.local/accepted-guesses.sql` to populate accepted guesses without approving answers. For development only, run [seed-development.sql](supabase/seed-development.sql) to approve the starter answer fixtures. The separate launch pool contains 340 selected answers; run `npm run answers:sql` and import the generated approval update to enable it. No dictionary import approves answers automatically. See [dictionary documentation](data/README.md).
 3. Enable anonymous sign-ins for players. Configure signup abuse protection and provider rate limits suitable for launch traffic. Test anonymous signup from the intended audience's region.
-4. Create/invite the admin account through the owner-managed Auth dashboard. Set the email sign-in template to deliver `{{ .Token }}` so the admin UI can accept an email OTP; it does not consume a magic-link callback. Configure a reliable email sender and verify OTP delivery. The frontend never creates new admin accounts.
-5. In the SQL editor, add the verified Auth user's UUID to the private admin list:
+4. Set both Magic Link and Confirm Signup email templates to include `{{ .Token }}` so the admin UI can accept an email OTP; it does not consume a magic-link callback. Configure a reliable email sender and verify OTP delivery. The login form may create an Auth identity, but only an owner-approved, verified email receives admin membership.
+5. In the SQL editor, approve the owner's admin email privately (do not commit addresses to source):
 
 ```sql
-insert into wordle_private.admins(user_id)
-values ('REPLACE_WITH_VERIFIED_AUTH_USER_UUID');
+insert into wordle_private.admin_enrollment(email)
+values (lower('REPLACE_WITH_OWNER_EMAIL'));
 ```
 
 6. Copy `.env.example` to `.env.local`. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the project's public connection settings. **Never use a service-role or secret key.** Restart Vite after changing variables.
@@ -69,6 +69,6 @@ The header reset control asks for confirmation before clearing the current round
 
 ## Remaining launch work
 
-Connect owner-managed GitHub/Supabase accounts, review the production dictionary and answer pool, perform real browser/mobile and hosted integration checks, set traffic/abuse limits, and document a tested backup/restore process. Automatic daily selection skips answers used in the prior 180 days and reserved future daily answers; an exhausted pool fails clearly rather than changing the repeat rule.
+GitHub and Supabase are connected, database migrations are applied, and the live guest/game API passed smoke tests. Complete admin email-template configuration and first email verification, review company-specific word choices, check real mobile devices and traffic controls, and document a tested backup/restore process. Automatic daily selection skips answers used in the prior 180 days and reserved future daily answers; an exhausted pool fails clearly rather than changing the repeat rule.
 
 Documentation and handoff: [context/README.md](context/README.md). Brand/font notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

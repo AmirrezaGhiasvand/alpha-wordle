@@ -1,6 +1,6 @@
 # Project context
 
-Last updated: 2026-11-20. Phase: local app implemented; hosted Supabase integration and site deployment pending.
+Last updated: 2026-11-20. Phase: local app implemented; hosted Supabase backend verified; Pages release in progress.
 
 Build a company-customizable Persian word game inspired by Wordle. Players use separate devices to solve the same five-letter puzzle in six attempts. The owner records externally and can select, randomly generate, schedule, and share puzzles.
 
@@ -26,6 +26,6 @@ Build a company-customizable Persian word game inspired by Wordle. Players use s
 
 ## Confirmed infrastructure
 
-The implemented mobile-friendly React/TypeScript frontend targets GitHub Pages. A confirmed Supabase backend supplies admin authentication, private puzzle storage, and server-side game checks. This supports a real in-app admin screen while keeping the public website on GitHub Pages. The owner confirmed Supabase on 2026-11-20. The GitHub repository is created; Supabase is not yet provisioned.
+The implemented mobile-friendly React/TypeScript frontend targets GitHub Pages. A confirmed Supabase backend supplies admin authentication, private puzzle storage, and server-side game checks. This supports a real in-app admin screen while keeping the public website on GitHub Pages. The owner confirmed Supabase on 2026-11-20. The GitHub repository and Supabase database are provisioned, with live guest/game checks passing. See the status file for the current release result.
 
 The GitHub-only alternative remains documented for historical tradeoffs; it is not the selected direction.
