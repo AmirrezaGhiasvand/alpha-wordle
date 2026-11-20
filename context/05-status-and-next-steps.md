@@ -1,6 +1,6 @@
 # Current status and next steps
 
-Updated: 2026-11-21. Phase: friend-match backend deployed; frontend release in progress.
+Updated: 2026-11-21. Phase: deployed and verified, including friend matches.
 
 ## Play with a friend
 
@@ -14,7 +14,7 @@ Updated: 2026-11-21. Phase: friend-match backend deployed; frontend release in p
 - Validation: 53 tests pass, production build passes, original 22 viewport/theme checks pass, and a real hosted-backend match in two isolated browser contexts passes create/invite/choose/guess/winner/reload. Friend lobby and board pass 44 viewport/theme checks, with no lobby scrolling at the supported sizes.
 - Advisors reviewed: intentional default-deny private RLS and authenticated security-definer RPCs, matching the existing architecture; no missing foreign-key indexes. See [RPC advisor explanation](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable) and [default-deny RLS notice](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy).
 
-Next step: verify GitHub Actions publication and repeat the two-player browser journey at the public Pages URL. Real-device Safari and regional network testing remain maintenance follow-ups.
+Release `656fcbf`: [application checks](https://github.com/AmirrezaGhiasvand/alpha-wordle/actions/runs/44814660949) and [Pages deployment](https://github.com/AmirrezaGhiasvand/alpha-wordle/actions/runs/44814661001) succeeded. The full two-browser journey and 44 friend viewport/theme checks passed again at the public Pages URL. Isolated live test rooms were removed after verification. No deployment step remains. Real-device Safari, regional networks, and a future retention policy remain maintenance follow-ups.
 
 ## Verified implementation
 
