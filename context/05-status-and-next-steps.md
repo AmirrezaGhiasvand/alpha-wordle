@@ -1,6 +1,6 @@
 # Current status and next steps
 
-Updated: 2026-11-20. Phase: game deployed; admin default-email compatibility update publishing.
+Updated: 2026-11-20. Phase: deployed and verified.
 
 ## Verified implementation
 
@@ -30,7 +30,7 @@ Updated: 2026-11-20. Phase: game deployed; admin default-email compatibility upd
 
 The user enabled anonymous sign-ins and supplied the admin email. They do not have a separate host/mail server, so the admin form now accepts default Supabase email links as well as OTP codes; custom templates are optional. Only project-origin verification links of type email/magiclink/signup are accepted; redirects are ignored. The owner must sign in at `#/admin`, request an email, then enter its code or copy/paste the original link without opening it. Email verification activates the privately approved role. Do not claim the owner has completed verification until observed.
 
-Next: push the release, monitor Pages Actions to completion, verify live mobile/desktop play, and record the actual deployment result below. Real-device Safari testing and backup/retention operations remain maintenance follow-ups.
+Next user action: open the live admin page and verify the approved email using its code or original confirmation link. No custom templates or separate website host are required. Real-device Safari testing, email delivery capacity, and backup/retention operations remain maintenance follow-ups.
 
 ## Decisions for future sessions
 
@@ -40,4 +40,4 @@ Supabase skills were installed from supabase/agent-skills and read during setup.
 
 ## Deployment result
 
-GitHub Pages release e6b3552 completed successfully (Actions run 44769022356). CI also passed. Live checks at desktop 1440x900 and mobile 390x844 verified real Supabase play, a submitted guess, reset, both themes with equal logo dimensions, no scrolling, font loading, and admin login screen. A follow-up update adds default-email-link admin verification; record its final deployment below.
+GitHub Pages release e6b3552 completed successfully (Actions run 44769022356). CI also passed. Live checks at desktop 1440x900 and mobile 390x844 verified real Supabase play, a submitted guess, reset, both themes with equal logo dimensions, no scrolling, font loading, and admin login screen. Follow-up release fbc52bc also deployed successfully (Pages run 44769904194, CI run 44769904248). Its deployed bundle contains default-email-link admin verification. The live desktop/mobile smoke tests were repeated successfully after this release. Owner email verification remains a user sign-in step, not a completed agent action.

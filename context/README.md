@@ -1,6 +1,6 @@
 # Project context
 
-Last updated: 2026-11-20. Phase: local app implemented; hosted Supabase backend verified; Pages release in progress.
+Last updated: 2026-11-20. Phase: local app implemented; live GitHub Pages app and Supabase backend deployed and verified.
 
 Build a company-customizable Persian word game inspired by Wordle. Players use separate devices to solve the same five-letter puzzle in six attempts. The owner records externally and can select, randomly generate, schedule, and share puzzles.
 
